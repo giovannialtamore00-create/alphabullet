@@ -57,7 +57,7 @@ Every later `git push` redeploys automatically.
 **Rules**
 - Each player starts with 2 random letters. 8 more lie glowing on the map. Walk over one to pick it up. You can't hold two copies of the same letter, and only 2 copies of each letter exist.
 - When half of the map letters are taken, a 2-minute timer starts, then new letters appear in fresh spots (shown on the minimap).
-- Your active letter fires constantly. Letters with more stroke ends fire more, weaker bullets.
+- Your active letter fires constantly. Every letter deals the same total damage, split evenly between its stroke ends, so more ends = weaker bullets. Range follows stroke length: a long arm shoots far, a stub barely reaches (b fires far north, barely south).
 - Damage and kills give XP to the letter you are using. When it's full, the letter is **upgraded**: press **Shift** to become its CAPITAL form for 20 s (new shape, new firing pattern, bigger bullets). Then it recharges for 45 s.
 - **Shield letters** (O, D, B, C, Q) block damage on their curved side, up to a cap per second. O guards all round but blocks less; D and B guard one side but block more. Damage over the cap still gets through.
 - Mobs only hurt by touching you. Mobs and players both block bullets.

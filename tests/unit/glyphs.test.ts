@@ -76,3 +76,28 @@ describe('glyph data and derivation', () => {
     expect(f.emitters.length).toBe(2);
   });
 });
+
+describe('range from stroke length, equal damage split', () => {
+  const total = (k: string, cap = false) => {
+    const f = getForm(k, cap);
+    return f.bullet.dmg * f.bullet.rate * f.emitters.length;
+  };
+  it('every non-shield letter deals the same total, split evenly', () => {
+    expect(total('M')).toBeCloseTo(total('I'), 6);
+    expect(total('M')).toBeCloseTo(BULLET.baseDps, 6);
+    expect(getForm('M', false).emitters.length).toBe(4);
+    expect(getForm('I', false).emitters.length).toBe(2);
+    const perSource = (k: string) => getForm(k, false).bullet.dmg * getForm(k, false).bullet.rate;
+    expect(perSource('M')).toBeCloseTo(perSource('I') / 2, 6);
+  });
+  it('longer arms shoot farther: b reaches far north, barely south', () => {
+    const b = getForm('B', false);
+    const n = b.emitters.find((e) => e.dy < 0)!;
+    const s = b.emitters.find((e) => e.dy > 0)!;
+    expect(n.range).toBeGreaterThan(s.range * 3);
+    const t = getForm('T', true);
+    const stem = t.emitters.find((e) => e.dy > 0)!;
+    const arm = t.emitters.find((e) => e.dx !== 0)!;
+    expect(stem.range).toBeGreaterThan(arm.range * 2);
+  });
+});

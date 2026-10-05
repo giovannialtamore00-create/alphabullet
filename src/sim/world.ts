@@ -173,7 +173,7 @@ function fire(w: World): void {
           vy: e.dy * b.speed,
           r: b.radius,
           dmg: b.dmg,
-          life: b.life,
+          life: e.range / b.speed,
           capital: form.capital,
         });
       w.events.push({ t: 'shot', owner: p.id, x: p.x, y: p.y, capital: form.capital });

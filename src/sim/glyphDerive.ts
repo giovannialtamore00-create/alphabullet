@@ -10,6 +10,10 @@ export interface Emitter {
   y: number;
   dx: number; // unit direction, snapped to 8 ways
   dy: number;
+  /** Stroke length (unit) from this free end to the nearest joint: longer arm = longer range. */
+  arm: number;
+  /** Bullet range in px, proportional to arm. */
+  range: number;
 }
 export interface BulletStats {
   rate: number; // volleys per second (all emitters fire together)
@@ -79,6 +83,44 @@ function norm(x: number, y: number): [number, number] {
   return [x / l, y / l];
 }
 
+/** Points every ~0.02 unit along a polyline, starting at the given end, with walked distance. */
+function walk(pts: Pt[], end: 0 | 1): { p: Pt; d: number }[] {
+  const order = end === 0 ? pts : [...pts].reverse();
+  const out: { p: Pt; d: number }[] = [{ p: order[0], d: 0 }];
+  let d = 0;
+  for (let k = 0; k < order.length - 1; k++) {
+    const a = order[k], b = order[k + 1];
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    const n = Math.max(1, Math.ceil(len / 0.02));
+    for (let i = 1; i <= n; i++) out.push({ p: { x: a.x + ((b.x - a.x) * i) / n, y: a.y + ((b.y - a.y) * i) / n }, d: d + (len * i) / n });
+    d += len;
+  }
+  return out;
+}
+
+/**
+ * Arm length of a free end: distance along its stroke to the first joint with another stroke
+ * (or with a far part of itself). With no joint, half the stroke if the other end is free too.
+ */
+export function armLength(strokes: Stroke[], si: number, end: 0 | 1): number {
+  const s = strokes[si];
+  const samples = walk(s.pts, end);
+  const total = samples[samples.length - 1].d;
+  const others: [Pt, Pt][] = [];
+  strokes.forEach((o, oi) => {
+    if (oi !== si) for (let k = 0; k < o.pts.length - 1; k++) others.push([o.pts[k], o.pts[k + 1]]);
+  });
+  for (const { p, d } of samples) {
+    if (d < 0.03) continue;
+    if (others.some(([a, b]) => distPointSeg(p, a, b) < CONNECT_EPS)) return d;
+    // Self-joint: a part of the same stroke far (along the stroke) from here passes close by.
+    if (samples.some((q) => Math.abs(q.d - d) > 0.15 && Math.hypot(q.p.x - p.x, q.p.y - p.y) < CONNECT_EPS * 0.6)) return d;
+  }
+  const otherEnd = samples[samples.length - 1].p;
+  const otherEndJoined = others.some(([a, b]) => distPointSeg(otherEnd, a, b) < CONNECT_EPS);
+  return otherEndJoined ? total : total / 2;
+}
+
 /** Free stroke ends that are not touching other strokes and not firing straight into their own glyph. */
 export function deriveEmitters(strokes: Stroke[]): Emitter[] {
   const out: Emitter[] = [];
@@ -108,7 +150,7 @@ export function deriveEmitters(strokes: Stroke[]): Emitter[] {
       }
       if (blocked) continue;
       const dup = out.some((e) => Math.hypot(e.x - p.x, e.y - p.y) < 0.05 && e.dx === dx && e.dy === dy);
-      if (!dup) out.push({ x: p.x, y: p.y, dx, dy });
+      if (!dup) out.push({ x: p.x, y: p.y, dx, dy, arm: armLength(strokes, si, end), range: 0 });
     }
   });
   return out;
@@ -121,7 +163,9 @@ export function emittersFromShields(shields: ShieldArc[]): Emitter[] {
     const facings = s.width >= 300 ? [0, 90, 180, 270] : [s.facing];
     for (const f of facings) {
       const [dx, dy] = snap8(Math.cos((f * Math.PI) / 180), Math.sin((f * Math.PI) / 180));
-      out.push({ x: s.cx + s.r * dx, y: s.cy + s.r * dy, dx, dy });
+      // Pulses reach as far as half the curve they come from.
+      const arm = (s.r * Math.min(s.width, 90) * Math.PI) / 180;
+      out.push({ x: s.cx + s.r * dx, y: s.cy + s.r * dy, dx, dy, arm, range: 0 });
     }
   }
   return out;
@@ -148,6 +192,8 @@ export function deriveForm(letter: string, glyph: GlyphForm, capital: boolean): 
     emitters = emittersFromShields(glyph.shields);
     emittersFromShield = true;
   }
+  const rangeMul = capital ? BULLET.capitalRangeMul : 1;
+  for (const e of emitters) e.range = Math.min(BULLET.maxRange, Math.max(BULLET.minRange, e.arm * BULLET.rangePerUnit)) * rangeMul;
   const n = Math.max(1, emitters.length);
   const isShield = glyph.shields.length > 0;
   const rate = BULLET.baseRate / Math.sqrt(n);

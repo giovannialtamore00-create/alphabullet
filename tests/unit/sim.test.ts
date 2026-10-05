@@ -237,7 +237,7 @@ describe('bullets and collisions', () => {
     const p = w.players[0];
     const q = w.players[1];
     q.x = p.x;
-    q.y = p.y + 250;
+    q.y = p.y + 110; // lowercase a: short legs, short range
     let selfHits = 0;
     for (let t = 0; t < 60; t++) {
       step(w, {});

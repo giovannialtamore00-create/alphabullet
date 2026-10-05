@@ -109,8 +109,9 @@ export function botInput(w: World, id: number, brain: BotBrain): PlayerInput {
       let gy = 0;
       for (const e of form.emitters) {
         // Stand where this emitter's ray hits the enemy, slightly strafing.
-        const tx = enemy.x - e.dx * ATTACK_DIST - e.dy * 40 * brain.strafe;
-        const ty = enemy.y - e.dy * ATTACK_DIST + e.dx * 40 * brain.strafe;
+        const dist = Math.min(ATTACK_DIST, e.range * 0.8);
+        const tx = enemy.x - e.dx * dist - e.dy * 40 * brain.strafe;
+        const ty = enemy.y - e.dy * dist + e.dx * 40 * brain.strafe;
         const d = Math.hypot(tx - p.x, ty - p.y);
         if (d < best) {
           best = d;

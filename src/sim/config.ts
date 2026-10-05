@@ -7,7 +7,7 @@ export const MAP_EDGE_SOFT = 150; // px of soft push-back near the map edge
 export const MAX_PLAYERS = 8;
 
 export const PLAYER_HP = 100;
-export const PLAYER_SPEED = 200;
+export const PLAYER_SPEED = 340;
 export const SWITCH_COOLDOWN = 0.5;
 export const START_LETTERS = 2;
 export const PICKUP_RADIUS = 26;
@@ -18,10 +18,14 @@ export const CAP_SIZE = 74;
 
 export const BULLET = {
   speed: 540,
-  life: 1.0,
+  life: 1.0, // fallback only; real range comes from stroke length (rangePerUnit)
+  rangePerUnit: 1000, // px of range per unit of stroke arm length
+  minRange: 140,
+  maxRange: 1000,
+  capitalRangeMul: 1.2,
   radius: 5,
   baseDps: 36, // total damage/sec of a 1-emitter lowercase letter
-  perExtraEmitterDps: 0.1, // +10% total per extra emitter (spread is less focused)
+  perExtraEmitterDps: 0, // every letter deals the same total; split evenly between emitters
   baseRate: 6, // shots/sec for 1 emitter; divided by sqrt(emitters)
   shieldLetterDpsMul: 0.4,
   capitalDpsMul: 1.7,
@@ -62,9 +66,9 @@ export interface MobTier {
   dmg: number;
 }
 export const MOB_TIERS: Record<'slender' | 'medium' | 'chunky', MobTier> = {
-  slender: { hp: 8, speed: 150, radius: 12, dmg: 4 },
-  medium: { hp: 24, speed: 105, radius: 16, dmg: 6 },
-  chunky: { hp: 60, speed: 68, radius: 22, dmg: 10 },
+  slender: { hp: 5.6, speed: 150, radius: 12, dmg: 4 },
+  medium: { hp: 16.8, speed: 105, radius: 16, dmg: 6 },
+  chunky: { hp: 42, speed: 68, radius: 22, dmg: 10 },
 };
 export const MOB_CONTACT_COOLDOWN = 0.8;
 export const MOB_CAP_PER_PLAYER = 60;
@@ -72,7 +76,7 @@ export const MOB_CAP_TOTAL = 300;
 export const MOB_SPAWN_DIST: [number, number] = [1050, 1300];
 export const MOB_DESPAWN_DIST = 2600;
 /** Spawns/sec per alive player at time t (seconds). */
-export const mobSpawnRate = (t: number) => Math.min(1.6, 0.25 + t / 600);
+export const mobSpawnRate = (t: number) => Math.min(1.6, 0.75 + t / 600);
 /** Weight of [slender, medium, chunky] at time t. */
 export const mobTierWeights = (t: number): [number, number, number] => [
   Math.max(2, 6 - t / 120),
