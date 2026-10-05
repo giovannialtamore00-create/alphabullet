@@ -31,3 +31,7 @@ Every judgment call, newest at the bottom. Format: `- [M<n>] decision. Why.`
 - [M3] Fog is drawn as a thick grey ring outside the circle (no polygon holes); next safe zone is a dashed ink circle in the world and on the minimap.
 - [M3] Rendering interpolates players/mobs/bullets between 30 Hz sim ticks.
 - [M3] When dead, left/right arrows cycle the spectated player.
+- [M4] Hit flash = brief dark-red ink tint (0.12 s) plus a scale pop; everything else stays black ink. Pickup halos use a warm highlighter glow (gold; red for upgraded copies) so they read on paper.
+- [M4] Shield letters emit a thin arc ripple from each curvature every 0.4 s (0.22 s in CAPITAL); blocked hits send an extra ripple.
+- [M4] Soundtrack: 152 BPM A-minor loop (Am-F-C-G) with kick/snare/hats, saw bass, square arpeggio, triangle pad; denser when the fog reaches stage 3 or 3 players remain. All synthesized via Web Audio.
+- [M4] Shot sounds: very quiet randomized ticks, rate-limited (max ~20/s); other players' sounds fade out beyond 950 px. Audio starts on the first key/click (browser rule). Volume settings persist in localStorage.

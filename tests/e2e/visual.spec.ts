@@ -33,3 +33,28 @@ test('visual snapshot of a busy scene', async ({ page }) => {
   await page.waitForTimeout(700);
   await page.screenshot({ path: 'test-results/visual.png' });
 });
+
+test('visual snapshot of effects (shield waves, CAPITAL, hitboxes)', async ({ page }) => {
+  await page.goto('/?debug');
+  await page.waitForFunction(() => (window as any).__game?.world?.tick > 10, null, { timeout: 30_000 });
+  await page.evaluate(() => {
+    const g = (window as any).__game;
+    const w = g.world;
+    const me = w.players[0];
+    me.god = true;
+    w.players[1].x = me.x + 300;
+    w.players[1].y = me.y + 40;
+    w.players[2].x = me.x - 320;
+    w.players[2].y = me.y - 60;
+    g.debug.hitboxes = true;
+  });
+  await page.selectOption('.debug-panel select', 'D');
+  await page.click('[data-k="give"]');
+  await page.keyboard.press('d');
+  await page.waitForTimeout(600);
+  await page.click('[data-k="upgrade"]');
+  await page.click('[data-k="mobs"]');
+  await page.keyboard.press('Shift');
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: 'test-results/effects.png' });
+});

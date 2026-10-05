@@ -35,6 +35,7 @@ export class Game {
   /** Extra inputs/hooks (debug panel, network). */
   inputOverride: ((w: World) => Record<number, PlayerInput>) | null = null;
   private listeners: EventListener[] = [];
+  private frameHooks: ((dt: number, alpha: number) => void)[] = [];
   private acc = 0;
   private last = 0;
   private raf = 0;
@@ -63,6 +64,10 @@ export class Game {
     this.listeners.push(fn);
   }
 
+  onFrame(fn: (dt: number, alpha: number) => void): void {
+    this.frameHooks.push(fn);
+  }
+
   async start(): Promise<void> {
     await this.renderer.init(this.parent);
     this.hud = new Hud(this.parent);
@@ -86,13 +91,15 @@ export class Game {
       }
       if (steps === 4) this.acc = 0; // fell behind: drop time rather than spiral
     }
-    this.renderer.render(this.world, this.paused ? 1 : this.acc / DT, dt, {
+    const alpha = this.paused ? 1 : this.acc / DT;
+    this.renderer.render(this.world, alpha, dt, {
       localId: this.localId,
       viewId: this.viewId,
       minimap: this.minimap,
       debug: this.debug,
     });
     this.hud.update(this.world, this.localId, this.viewId, dt);
+    for (const h of this.frameHooks) h(this.paused ? 0 : dt, alpha);
     if (this.endTimer > 0) {
       this.endTimer -= dt;
       if (this.endTimer <= 0) this.cb.onEnd(this.world);
