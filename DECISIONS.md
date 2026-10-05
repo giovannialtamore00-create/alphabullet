@@ -38,3 +38,5 @@ Every judgment call, newest at the bottom. Format: `- [M<n>] decision. Why.`
 - [M5] Screens are DOM overlays (#ui). Menu title is drawn with our own stroke glyphs. Host/Join are disabled "coming soon" until M7.
 - [M5] When you die you spectate until the match ends (spec); Esc opens the menu so you can quit early. The end screen shows over the still-running world.
 - [M5] Pause overlay contains the audio settings, so settings are reachable mid-match.
+- [M6] Vite base './' so the same build works at any GitHub Pages subpath. The workflow runs unit tests before deploying (e2e stays local to keep CI fast).
+- [M6] Pushing to GitHub and enabling Pages is the user's final step (README has the steps); GitHub was not set up during kickoff.

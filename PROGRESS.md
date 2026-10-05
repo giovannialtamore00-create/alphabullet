@@ -1,13 +1,14 @@
 # Progress
 
 ## Current
-- Milestone: 6 (deploy + README for solo). Phase: build.
-- M5 done: src/ui/screens.ts (menu, settings, pause, end, notice), main.ts state machine. e2e: tests/e2e/smoke.spec.ts (2 tests: load+match, full flow) pass.
+- Milestone: 7 (multiplayer, PeerJS). Phase: build.
+- M6 done: .github/workflows/deploy.yml, README.md (run/build/deploy steps, how to play, letter table generated from glyph data). Not deployed yet: user must push to GitHub and enable Pages (README steps).
 
 ## Next steps
-1. .github/workflows/deploy.yml (build + test + deploy to GitHub Pages).
-2. README.md: run, build, deploy steps for a non-expert, how to play, requirements, known limitations, letter content table (generated from data via scripts/letterTable).
-3. Checkpoint M6.
+1. src/net/protocol.ts: message types + compact snapshot encode/decode (quantized positions, entities near each client only). Unit tests for round-trip.
+2. src/net/host.ts / client.ts on PeerJS: room code = peer id suffix; lobby with player list; host runs sim + bots, sends snapshots at 20 Hz; clients send inputs every tick, interpolate others, predict own movement.
+3. Disconnects: client leaves -> removePlayer; host leaves -> clients see notice and return to menu. Human cap decision.
+4. Enable Host/Join in menu, lobby screen, join-by-code screen. Update README, checkpoint M7.
 
 ## Milestones
 1. Core logic + tests  [done]
@@ -15,7 +16,7 @@
 3. Rendering + playable solo loop  [done]
 4. Effects + audio  [done]
 5. Screens + polish  [done]
-6. Deploy + README (solo)
+6. Deploy + README (solo)  [done, push pending user]
 7. Multiplayer (PeerJS)
 8. Parking-lot phase
 
