@@ -70,7 +70,7 @@ export function isScreenOpen(): boolean {
   return current !== null;
 }
 
-function show(el: HTMLElement): HTMLElement {
+export function showScreen(el: HTMLElement): HTMLElement {
   closeScreen();
   current = el;
   ui().appendChild(el);
@@ -101,7 +101,7 @@ export function showMenu(a: MenuActions): void {
     ),
     h('p', {}, 'Walk over glowing letters to collect them. Damage and kills level up the letter you are using; when it upgrades, Shift turns it into its CAPITAL form for 20 s. O, D, B, C and Q carry shields on their curves. The fog closes in over time. Last letter standing wins.'),
   );
-  show(
+  showScreen(
     h(
       'div',
       { cls: 'screen menu' },
@@ -143,11 +143,11 @@ export function settingsPanel(): HTMLElement {
 }
 
 export function showSettings(onBack: () => void): void {
-  show(h('div', { cls: 'screen' }, settingsPanel(), button('Back', onBack)));
+  showScreen(h('div', { cls: 'screen' }, settingsPanel(), button('Back', onBack)));
 }
 
 export function showPause(opts: { solo: boolean; onResume: () => void; onQuit: () => void }): void {
-  show(
+  showScreen(
     h(
       'div',
       { cls: 'screen overlay' },
@@ -166,7 +166,7 @@ export function showEnd(w: World, localId: number, opts: { onAgain: (() => void)
   const survived = me.deathTime ?? w.time;
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   const stat = (k: string, v: string | number) => h('div', { cls: 'stat' }, h('span', {}, k), h('b', {}, String(v)));
-  show(
+  showScreen(
     h(
       'div',
       { cls: 'screen overlay end' },
@@ -188,7 +188,7 @@ export function showEnd(w: World, localId: number, opts: { onAgain: (() => void)
 
 /** Simple notice with one button (errors, disconnects). */
 export function showNotice(title: string, text: string, onOk: () => void): void {
-  show(h('div', { cls: 'screen overlay' }, h('h2', {}, title), h('p', {}, text), button('OK', onOk, { cls: 'primary' })));
+  showScreen(h('div', { cls: 'screen overlay' }, h('h2', {}, title), h('p', {}, text), button('OK', onOk, { cls: 'primary' })));
 }
 
 export function currentScreen(): HTMLElement | null {

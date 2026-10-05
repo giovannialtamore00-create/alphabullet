@@ -64,6 +64,13 @@ Every later `git push` redeploys automatically.
 - The **fog** closes in in stages (the next safe zone is the dashed circle). Standing in it hurts.
 - When a player is erased, their letters drop nearby, *keeping their upgrades*. Death is final: you then spectate. **The last letter standing wins.**
 
+## Playing online
+- **Host:** click **Host**, then **Create room**. Share the 5-letter room code with up to 5 friends (6 humans max). Click **Start match**. Empty slots up to 8 are filled with bots.
+- **Join:** click **Join**, type the code and your name, and wait for the host to start.
+- Connections are peer-to-peer (WebRTC via the free public PeerJS broker). No server or account is needed, and the game stays a static site.
+- The host runs the real game; everyone else sends key presses and sees snapshots 20 times a second. If a player disconnects, their letters drop as if they died. If the host leaves, the match ends for everyone with a message.
+- Online, **Esc** opens the settings menu but the game keeps running.
+
 ## Letters
 Firing directions are derived automatically from each glyph's strokes (N = up, S = down, E = right, W = left). "Pulses" means the letter has no free stroke ends, so it fires weak pulses from its curves.
 
@@ -102,7 +109,9 @@ Firing directions are derived automatically from each glyph's strokes (N = up, S
 - `DECISIONS.md` lists every judgment call. `BLOCKERS.md` lists parked problems. `PROGRESS.md` holds the current status.
 
 ## Known limitations
-- Online play arrives in the multiplayer milestone. Until then Host and Join are disabled.
+- Online play depends on the public PeerJS broker (0.peerjs.com) to introduce players. Some strict corporate or school networks block WebRTC; there is no TURN relay, so a few network setups cannot connect.
+- Online matches are capped at 6 humans (bots fill to 8) to keep the host's upload reasonable. The host's computer and connection carry the whole match.
+- Online play has no lag compensation for shooting; your own movement is predicted locally, everything else is shown slightly behind the host.
 - Keyboard only; no touch or mobile controls (by design for this MVP).
 - Balance numbers are first-pass guesses (see `DECISIONS.md`).
 - Bots are simple steering AIs: they collect letters, kite mobs, aim by moving, avoid fog and use CAPITAL, but they don't plan.

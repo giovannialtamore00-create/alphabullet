@@ -40,3 +40,9 @@ Every judgment call, newest at the bottom. Format: `- [M<n>] decision. Why.`
 - [M5] Pause overlay contains the audio settings, so settings are reachable mid-match.
 - [M6] Vite base './' so the same build works at any GitHub Pages subpath. The workflow runs unit tests before deploying (e2e stays local to keep CI fast).
 - [M6] Pushing to GitHub and enabling Pages is the user's final step (README has the steps); GitHub was not set up during kickoff.
+- [M7] Online human cap = 6 (bots fill to 8): each extra client costs the host a full snapshot stream; 6 keeps host upload modest. Logged per spec.
+- [M7] Transport: PeerJS reliable JSON data channels (simple, ordered). Room code = 5 letters (no I/O) => peer id "alphabullet-v1-CODE".
+- [M7] Snapshots at 20 Hz with positions rounded to whole pixels; only mobs within 1400 px of the client's viewed player. Bullets are sent once when they come near and then simulated on the client (straight lines), with a "gone" list for hits — this cut bullet traffic by ~90%.
+- [M7] Client prediction: own movement replays unacknowledged inputs on top of the server position (shared moveStep). Everything else is interpolated between snapshots.
+- [M7] Online end screen offers only "Back to menu" (no "Play again"; the host re-hosts). Late joiners are rejected once the match starts. Debug panel is host/solo only.
+- [M7] Networking is behind a small Conn interface; an in-memory pair drives the unit tests, PeerJS is used in the browser. A Playwright test runs a real two-browser match over the public broker (skips if unreachable).

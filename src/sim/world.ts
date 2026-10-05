@@ -96,6 +96,20 @@ function endCapital(w: World, p: Player): void {
   }
 }
 
+/** One tick of 8-way movement, clamped to the map. Shared with client-side prediction. */
+export function moveStep(x: number, y: number, mxIn: number, myIn: number): { x: number; y: number } {
+  let mx = Math.sign(mxIn);
+  let my = Math.sign(myIn);
+  if (mx && my) {
+    mx *= Math.SQRT1_2;
+    my *= Math.SQRT1_2;
+  }
+  return {
+    x: Math.min(MAP_SIZE - 20, Math.max(20, x + mx * PLAYER_SPEED * DT)),
+    y: Math.min(MAP_SIZE - 20, Math.max(20, y + my * PLAYER_SPEED * DT)),
+  };
+}
+
 function applyInput(w: World, p: Player, inp: PlayerInput): void {
   p.switchCd -= DT;
   p.morph += DT;
@@ -117,14 +131,9 @@ function applyInput(w: World, p: Player, inp: PlayerInput): void {
     p.morph = 0;
     w.events.push({ t: 'capital', id: p.id, letter: c.letter, on: true });
   }
-  let mx = Math.sign(inp.mx);
-  let my = Math.sign(inp.my);
-  if (mx && my) {
-    mx *= Math.SQRT1_2;
-    my *= Math.SQRT1_2;
-  }
-  p.x = Math.min(MAP_SIZE - 20, Math.max(20, p.x + mx * PLAYER_SPEED * DT));
-  p.y = Math.min(MAP_SIZE - 20, Math.max(20, p.y + my * PLAYER_SPEED * DT));
+  const pos = moveStep(p.x, p.y, inp.mx, inp.my);
+  p.x = pos.x;
+  p.y = pos.y;
   const form = activeForm(w, p);
   const cap = form?.shieldCap ?? 0;
   p.shieldBudget = Math.min(cap, p.shieldBudget + cap * DT);

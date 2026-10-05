@@ -1,14 +1,12 @@
 # Progress
 
 ## Current
-- Milestone: 7 (multiplayer, PeerJS). Phase: build.
-- M6 done: .github/workflows/deploy.yml, README.md (run/build/deploy steps, how to play, letter table generated from glyph data). Not deployed yet: user must push to GitHub and enable Pages (README steps).
+- Milestone: 8 (parking-lot phase). Phase: parking lot.
+- M7 done: src/net/ (protocol.ts snapshots, session.ts HostSession/ClientSession, transport.ts PeerJS + memory pair), src/ui/online.ts, Game client/host modes, main.ts online flows. 50 unit tests; e2e: smoke (2) + online (real PeerJS) pass.
 
 ## Next steps
-1. src/net/protocol.ts: message types + compact snapshot encode/decode (quantized positions, entities near each client only). Unit tests for round-trip.
-2. src/net/host.ts / client.ts on PeerJS: room code = peer id suffix; lobby with player list; host runs sim + bots, sends snapshots at 20 Hz; clients send inputs every tick, interpolate others, predict own movement.
-3. Disconnects: client leaves -> removePlayer; host leaves -> clients see notice and return to menu. Human cap decision.
-4. Enable Host/Join in menu, lobby screen, join-by-code screen. Update README, checkpoint M7.
+1. BLOCKERS.md is empty: no parked problems. Use remaining time for small, safe improvements only on branches.
+2. Final summary to user + final checkpoint.
 
 ## Milestones
 1. Core logic + tests  [done]
@@ -17,7 +15,7 @@
 4. Effects + audio  [done]
 5. Screens + polish  [done]
 6. Deploy + README (solo)  [done, push pending user]
-7. Multiplayer (PeerJS)
+7. Multiplayer (PeerJS)  [done]
 8. Parking-lot phase
 
 ## Context for a fresh session

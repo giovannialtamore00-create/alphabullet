@@ -6,6 +6,8 @@ import type { PlayerInput, SimEvent, World } from '../sim/types';
 import { Keyboard } from '../input/keyboard';
 import { GameRenderer } from '../render/renderer';
 import { Hud } from '../ui/hud';
+import { advanceBullets, applySnapshot, type Snapshot } from '../net/protocol';
+import type { ClientSession, HostSession } from '../net/session';
 
 export interface MatchSetup {
   seed: number;
@@ -42,6 +44,9 @@ export class Game {
   private endTimer = -1;
   private lastSpecMx = 0;
   fps = 0;
+  /** Online roles: host runs the sim and sends snapshots; client only mirrors. */
+  net: { host?: HostSession; client?: ClientSession } = {};
+  private lastSnapAt = 0;
 
   constructor(
     private parent: HTMLElement,
@@ -91,7 +96,8 @@ export class Game {
       }
       if (steps === 4) this.acc = 0; // fell behind: drop time rather than spiral
     }
-    const alpha = this.paused ? 1 : this.acc / DT;
+    if (this.net.client) advanceBullets(this.world, dt);
+    const alpha = this.net.client ? Math.min(1, (now - this.lastSnapAt) / 50) : this.paused ? 1 : this.acc / DT;
     this.renderer.render(this.world, alpha, dt, {
       localId: this.localId,
       viewId: this.viewId,
@@ -108,6 +114,7 @@ export class Game {
 
   /** One fixed sim step with all inputs. */
   tick(): void {
+    if (this.net.client) return this.clientTick(this.net.client);
     const w = this.world;
     this.renderer.snapshotPrev(w);
     const local = this.keyboard.poll();
@@ -115,7 +122,45 @@ export class Game {
     if (this.inputOverride) Object.assign(inputs, this.inputOverride(w));
     this.spectateControls(local);
     step(w, inputs);
+    this.net.host?.afterTick(w);
     if (w.events.length) for (const l of this.listeners) l(w.events, w);
+  }
+
+  /** Online client tick: send input, predict our own movement. The host owns everything else. */
+  private clientTick(client: ClientSession): void {
+    const local = this.keyboard.poll();
+    this.spectateControls(local);
+    const me = this.world.players[this.localId];
+    client.sendInput(me.alive ? local : { mx: 0, my: 0, switchTo: null, capital: false }, this.viewId);
+    this.applyPrediction(client);
+  }
+
+  private applyPrediction(client: ClientSession): void {
+    const me = this.world.players[this.localId];
+    const pred = client.predicted();
+    if (pred && me.alive) {
+      me.x = pred.x;
+      me.y = pred.y;
+    }
+  }
+
+  /** Online client: apply an authoritative snapshot from the host. */
+  applyNetSnapshot(snap: Snapshot): void {
+    const client = this.net.client!;
+    this.renderer.snapshotPrev(this.world);
+    applySnapshot(this.world, snap, { keepLocal: this.localId });
+    client.reconcile(snap, this.localId);
+    this.applyPrediction(client);
+    this.lastSnapAt = performance.now();
+    if (snap.e.length) for (const l of this.listeners) l(snap.e, this.world);
+  }
+
+  /** Client mode setup: render without lerp for our predicted player and local bullets. */
+  enableClientMode(client: ClientSession): void {
+    this.net.client = client;
+    this.renderer.noLerpId = this.localId;
+    this.renderer.bulletLerp = false;
+    client.onSnapshot = (s) => this.applyNetSnapshot(s);
   }
 
   private spectateControls(inp: PlayerInput): void {

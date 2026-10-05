@@ -129,7 +129,12 @@ export class GameRenderer {
     return { x: p.x + (x - p.x) * a, y: p.y + (y - p.y) * a };
   }
 
+  /** Online client: our predicted player and client-simulated bullets are drawn without interpolation. */
+  noLerpId = -1;
+  bulletLerp = true;
+
   playerPos(p: Player, a: number) {
+    if (p.id === this.noLerpId) return { x: p.x, y: p.y };
     return this.lerp(this.prevP, p.id, p.x, p.y, a);
   }
 
@@ -268,7 +273,7 @@ export class GameRenderer {
   private syncBullets(w: World, a: number, inView: (x: number, y: number, m?: number) => boolean): void {
     const seen = new Set<number>();
     for (const b of w.bullets) {
-      const p = this.lerp(this.prevB, b.id, b.x, b.y, a);
+      const p = this.bulletLerp ? this.lerp(this.prevB, b.id, b.x, b.y, a) : { x: b.x, y: b.y };
       if (!inView(p.x, p.y, 20)) continue;
       seen.add(b.id);
       let s = this.bullets.get(b.id);
@@ -418,19 +423,22 @@ export class GameRenderer {
     // Fog wash outside the circle.
     const rows = 64;
     const rh = size / rows;
+    let strips = 0;
     for (let i = 0; i < rows; i++) {
       const wy = ((i + 0.5) / rows) * MAP_SIZE - f.y;
       const half = f.r > Math.abs(wy) ? Math.sqrt(f.r * f.r - wy * wy) : -1;
       const y = oy + i * rh;
       if (half < 0) {
         g.rect(ox, y, size, rh);
+        strips++;
         continue;
       }
       const l = Math.max(0, (f.x - half) * s), r2 = Math.min(size, (f.x + half) * s);
-      if (l > 0) g.rect(ox, y, Math.min(l, size), rh);
-      if (r2 < size) g.rect(ox + Math.max(0, r2), y, size - Math.max(0, r2), rh);
+      if (l > 0) (g.rect(ox, y, Math.min(l, size), rh), strips++);
+      if (r2 < size) (g.rect(ox + Math.max(0, r2), y, size - Math.max(0, r2), rh), strips++);
     }
-    g.fill({ color: 0x5f5a54, alpha: 0.35 });
+    // Only fill when strips exist: fill() with no new shapes would refill the background rect.
+    if (strips) g.fill({ color: 0x5f5a54, alpha: 0.35 });
     if (f.phase !== 'done' && f.toR > 0) g.circle(ox + f.toX * s, oy + f.toY * s, Math.max(2, f.toR * s)).stroke({ width: 1.5, color: INK, alpha: 0.6 });
     for (const c of w.copies) {
       if (c.state !== 'ground') continue;
