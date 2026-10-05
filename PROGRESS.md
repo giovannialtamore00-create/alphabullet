@@ -1,21 +1,20 @@
 # Progress
 
 ## Current
-- Milestone: 5 (screens + polish). Phase: build.
-- M4 done: src/render/effects.ts (particles, rings, shield ripples), src/audio/audio.ts (AudioEngine singleton audio: music scheduler + SFX), src/game/feedback.ts (attachFeedback wires events to fx+audio). Game has onFrame/onEvents hooks.
+- Milestone: 6 (deploy + README for solo). Phase: build.
+- M5 done: src/ui/screens.ts (menu, settings, pause, end, notice), main.ts state machine. e2e: tests/e2e/smoke.spec.ts (2 tests: load+match, full flow) pass.
 
 ## Next steps
-1. src/ui/screens.ts: start screen (Play vs bots / Host / Join / Settings; online buttons marked coming soon until M7), settings (music, sfx sliders, mute), pause/settings overlay (Esc), end screen (winner, placement, kills, letters collected, Play again / Back to menu).
-2. main.ts: app state machine menu -> match -> end -> menu. Title drawn with our glyphs.
-3. Polish pass: how-to-play panel on start screen, playtest headless a full flow in Playwright (start -> match -> force end -> end screen -> back).
-4. Checkpoint M5.
+1. .github/workflows/deploy.yml (build + test + deploy to GitHub Pages).
+2. README.md: run, build, deploy steps for a non-expert, how to play, requirements, known limitations, letter content table (generated from data via scripts/letterTable).
+3. Checkpoint M6.
 
 ## Milestones
 1. Core logic + tests  [done]
 2. Input + bots  [done]
 3. Rendering + playable solo loop  [done]
 4. Effects + audio  [done]
-5. Screens + polish
+5. Screens + polish  [done]
 6. Deploy + README (solo)
 7. Multiplayer (PeerJS)
 8. Parking-lot phase

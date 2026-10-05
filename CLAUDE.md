@@ -21,4 +21,4 @@ Stack: Vite + TypeScript + PixiJS, Vitest, Playwright, PeerJS. Static site deplo
 - Dev: `npm run dev` · Build: `npm run build` · Unit tests: `npm test` · Smoke: `npm run test:e2e`
 
 ## Status
-M1-M4 done. Working on M5 (screens + polish). See PROGRESS.md.
+M1-M5 done. Working on M6 (deploy + README). See PROGRESS.md.

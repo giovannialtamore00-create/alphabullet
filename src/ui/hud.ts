@@ -96,7 +96,7 @@ export class Hud {
     else {
       this.spectate.style.display = 'block';
       this.spectate.textContent = view.alive && view !== me
-        ? `You placed #${me.placement}. Spectating ${view.name} (left/right arrows to switch)`
+        ? `You placed #${me.placement}. Spectating ${view.name} (left/right to switch, Esc for menu)`
         : `You placed #${me.placement}.`;
     }
     this.updateLetters(w, shown.id);

@@ -35,3 +35,6 @@ Every judgment call, newest at the bottom. Format: `- [M<n>] decision. Why.`
 - [M4] Shield letters emit a thin arc ripple from each curvature every 0.4 s (0.22 s in CAPITAL); blocked hits send an extra ripple.
 - [M4] Soundtrack: 152 BPM A-minor loop (Am-F-C-G) with kick/snare/hats, saw bass, square arpeggio, triangle pad; denser when the fog reaches stage 3 or 3 players remain. All synthesized via Web Audio.
 - [M4] Shot sounds: very quiet randomized ticks, rate-limited (max ~20/s); other players' sounds fade out beyond 950 px. Audio starts on the first key/click (browser rule). Volume settings persist in localStorage.
+- [M5] Screens are DOM overlays (#ui). Menu title is drawn with our own stroke glyphs. Host/Join are disabled "coming soon" until M7.
+- [M5] When you die you spectate until the match ends (spec); Esc opens the menu so you can quit early. The end screen shows over the still-running world.
+- [M5] Pause overlay contains the audio settings, so settings are reachable mid-match.
