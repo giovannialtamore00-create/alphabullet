@@ -6,6 +6,7 @@ import {
   MAP_SIZE,
   PLAYER_HP,
   PLAYER_SPEED,
+  PVP_DAMAGE_MUL,
   SPATIAL_CELL,
   START_LETTERS,
   SWITCH_COOLDOWN,
@@ -205,7 +206,7 @@ function updateBullets(w: World): void {
       const shooter = w.players[b.owner];
       const dealt = t.mob
         ? damageMob(w, t.mob, b.dmg, b.owner, b.copyId)
-        : damagePlayer(w, t.player!, b.dmg, b.x - b.vx * DT, b.y - b.vy * DT, b.owner);
+        : damagePlayer(w, t.player!, b.dmg * PVP_DAMAGE_MUL, b.x - b.vx * DT, b.y - b.vy * DT, b.owner);
       shooter.damageDealt += dealt;
       creditXp(w, b.owner, b.copyId, dealt * XP.perDamage);
       hit = true;

@@ -66,8 +66,21 @@ describe('bots', () => {
     expect(capital).toBe(true);
   });
 
-  it('a group of bots damages each other and switches letters', () => {
+  it('early in the match, healthy bots steer away from each other', () => {
+    const w = createWorld(9, Array.from({ length: 2 }, (_, i) => ({ name: `B${i}`, isBot: true })), { mobs: false });
+    for (const c of w.copies) if (c.state === 'ground') c.state = 'pool';
+    w.players[0].x = 4000;
+    w.players[0].y = 4000;
+    w.players[1].x = 4300;
+    w.players[1].y = 4000;
+    const brains = new Map<number, BotBrain>();
+    for (let i = 0; i < 20; i++) step(w, botInputs(w, brains));
+    expect(w.players[1].x - w.players[0].x).toBeGreaterThan(300);
+  });
+
+  it('late in the match, a group of bots fights and switches letters', () => {
     const w = createWorld(9, Array.from({ length: 4 }, (_, i) => ({ name: `B${i}`, isBot: true })), { mobs: false });
+    w.fog.stage = 3; // aggression grows with the fog
     w.players.forEach((p, i) => {
       p.x = 4000 + (i % 2) * 350;
       p.y = 4000 + Math.floor(i / 2) * 350;

@@ -35,6 +35,9 @@ export const SHIELD = {
   capitalMul: 1.75,
 };
 
+/** Bullets hurt players less than mobs, so duels last a few seconds and matches reach the late fog. */
+export const PVP_DAMAGE_MUL = 0.5;
+
 export const COPIES_PER_LETTER = 2;
 export const GROUND_LETTERS = 8;
 export const RESPAWN_THRESHOLD = 4; // wave refills once this many (or fewer) remain
@@ -59,17 +62,17 @@ export interface MobTier {
   dmg: number;
 }
 export const MOB_TIERS: Record<'slender' | 'medium' | 'chunky', MobTier> = {
-  slender: { hp: 8, speed: 150, radius: 12, dmg: 5 },
-  medium: { hp: 24, speed: 105, radius: 16, dmg: 8 },
-  chunky: { hp: 60, speed: 68, radius: 22, dmg: 14 },
+  slender: { hp: 8, speed: 150, radius: 12, dmg: 4 },
+  medium: { hp: 24, speed: 105, radius: 16, dmg: 6 },
+  chunky: { hp: 60, speed: 68, radius: 22, dmg: 10 },
 };
-export const MOB_CONTACT_COOLDOWN = 0.6;
+export const MOB_CONTACT_COOLDOWN = 0.8;
 export const MOB_CAP_PER_PLAYER = 60;
 export const MOB_CAP_TOTAL = 300;
 export const MOB_SPAWN_DIST: [number, number] = [1050, 1300];
 export const MOB_DESPAWN_DIST = 2600;
 /** Spawns/sec per alive player at time t (seconds). */
-export const mobSpawnRate = (t: number) => Math.min(4, 0.8 + t / 90);
+export const mobSpawnRate = (t: number) => Math.min(1.6, 0.25 + t / 600);
 /** Weight of [slender, medium, chunky] at time t. */
 export const mobTierWeights = (t: number): [number, number, number] => [
   Math.max(2, 6 - t / 120),

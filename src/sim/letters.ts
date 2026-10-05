@@ -53,9 +53,13 @@ export function giveCopy(_w: World, p: Player, c: LetterCopy): void {
   if (p.active === null) p.active = c.id;
 }
 
-/** Safe area for new letters: the next fog circle if there is one, else the current one. */
+/**
+ * Safe area for new letters: the whole current circle while the fog is waiting (spreads players out),
+ * the next circle once it is about to shrink (so letters are not swallowed).
+ */
 function spawnCircle(w: World): { x: number; y: number; r: number } {
   const f = w.fog;
+  if (f.phase === 'wait' && f.timer > 30) return { x: f.x, y: f.y, r: Math.max(0, f.r) };
   if (f.phase !== 'done' && f.toR > 100) return { x: f.toX, y: f.toY, r: f.toR };
   return { x: f.x, y: f.y, r: Math.max(0, f.r) };
 }

@@ -17,7 +17,7 @@ export interface BotBrain {
   strafe: number;
 }
 
-const KITE_RANGE = 230;
+const KITE_RANGE = 330;
 const ENEMY_RANGE = 750;
 const PICKUP_RANGE = 1600;
 const ATTACK_DIST = 320;
@@ -79,7 +79,7 @@ export function botInput(w: World, id: number, brain: BotBrain): PlayerInput {
     const d = Math.hypot(dx, dy);
     if (d > KITE_RANGE || d < 0.01) continue;
     mobsNear++;
-    const k = ((KITE_RANGE - d) / KITE_RANGE) * 2.2;
+    const k = ((KITE_RANGE - d) / KITE_RANGE) ** 1.5 * 3.2;
     vx += (dx / d) * k;
     vy += (dy / d) * k;
   }
@@ -96,8 +96,11 @@ export function botInput(w: World, id: number, brain: BotBrain): PlayerInput {
     }
   }
   const form = activeForm(w, p);
+  // Aggression grows with the fog: avoid players while leveling up, then fight when ahead, then always.
+  const stage = w.fog.stage;
+  const avoid = enemy && (stage <= 1 ? enemy.hp > p.hp - 30 : stage === 2 ? enemy.hp > p.hp - 10 : p.hp < 30 && enemy.hp > p.hp + 15);
   if (enemy && form) {
-    if (p.hp < 25 && enemy.hp > p.hp) {
+    if (avoid) {
       vx += ((p.x - enemy.x) / dEnemy) * 2;
       vy += ((p.y - enemy.y) / dEnemy) * 2;
     } else {
