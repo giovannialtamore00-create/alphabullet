@@ -1,19 +1,18 @@
 # Progress
 
 ## Current
-- Milestone: 3 (rendering + playable solo loop). Phase: build.
-- M1 done (core sim, 37 tests). M2 done: `src/sim/bots.ts` (botInputs, own RNG per bot), `src/input/keyboard.ts` (Keyboard.poll()). 44 tests pass.
+- Milestone: 4 (effects + audio). Phase: build.
+- M3 done: src/render/ (renderer.ts, glyphCanvas.ts, paper.ts), src/ui/hud.ts, src/game/game.ts (loop, events, spectate), src/debug/debugPanel.ts, src/main.ts starts a solo match directly. Smoke test tests/e2e/smoke.spec.ts passes; VISUAL=1 npx playwright test visual writes test-results/visual.png for a manual look.
 
 ## Next steps
-1. `src/render/`: Pixi app, paper texture (generated canvas), glyph drawing from stroke data, camera follow, entities (players, mobs, bullets, pickups), fog wash, minimap.
-2. `src/game/`: fixed-timestep loop (accumulator, 30 Hz) driving sim + bots + keyboard; HUD (DOM overlay).
-3. `?debug` panel: god, give letter, upgrade, spawn mobs, hitboxes/emitters/shields, FPS/entities.
-4. Playwright smoke test (start vs-bots, no console errors). Checkpoint `M3: rendering and playable solo loop`.
+1. src/render/effects.ts: hit sparks, ink-splat deaths, shield waves rippling from curvatures (from shieldBlock events + idle ripples), switch morph puffs, bold CAPITAL transformation burst, pickup glow burst. Subscribe via game.onEvents.
+2. src/audio/audio.ts: Web Audio synth: looping fast soundtrack (sequenced), SFX for shot (quiet, varied), hit, mob death, player death, pickup, switch, upgrade, CAPITAL, shield block. Music/SFX volume + mute settings (persist in localStorage).
+3. Checkpoint M4.
 
 ## Milestones
 1. Core logic + tests  [done]
 2. Input + bots  [done]
-3. Rendering + playable solo loop
+3. Rendering + playable solo loop  [done]
 4. Effects + audio
 5. Screens + polish
 6. Deploy + README (solo)

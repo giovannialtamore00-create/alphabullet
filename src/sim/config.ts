@@ -13,8 +13,8 @@ export const START_LETTERS = 2;
 export const PICKUP_RADIUS = 26;
 
 /** Glyph unit box (1.0) in pixels. */
-export const LOWER_SIZE = 46;
-export const CAP_SIZE = 64;
+export const LOWER_SIZE = 54;
+export const CAP_SIZE = 74;
 
 export const BULLET = {
   speed: 540,

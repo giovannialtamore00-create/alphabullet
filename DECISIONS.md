@@ -24,3 +24,10 @@ Every judgment call, newest at the bottom. Format: `- [M<n>] decision. Why.`
 - [M2] Bots flee when HP < 25 and the enemy has more HP. They re-evaluate letters every 4-10 s (swarm -> more emitters, duel -> heavier bullets, low HP -> shield letter, prefer ready CAPITAL), and fire CAPITAL when an enemy is within 650 px or 5+ mobs are close.
 - [M2] Bots use their own seeded RNG (not the world RNG) so a match replays exactly from seed + recorded inputs.
 - [M2] Letter keys read `KeyboardEvent.code` (works with Shift held and on non-QWERTY layouts). Tab/Esc are UI actions, not sim input.
+- [M3] Glyph textures are drawn with Canvas 2D from the stroke data (white, tinted to ink) and uploaded as Pixi textures; sprites batch well. Same drawer is used for HUD letter keys.
+- [M3] Glyph size raised to 54 px (lowercase) / 74 px (CAPITAL) per unit box for readability.
+- [M3] Camera zoom = clamp(min(w/1600, h/900), 0.6, 1.4) so mobs (spawned 1050+ px away) appear off-screen on any window.
+- [M3] Minimap is ON by default (top-right); Tab toggles it. HUD is a DOM overlay in Courier New (system font; game glyphs are all our own strokes).
+- [M3] Fog is drawn as a thick grey ring outside the circle (no polygon holes); next safe zone is a dashed ink circle in the world and on the minimap.
+- [M3] Rendering interpolates players/mobs/bullets between 30 Hz sim ticks.
+- [M3] When dead, left/right arrows cycle the spectated player.
