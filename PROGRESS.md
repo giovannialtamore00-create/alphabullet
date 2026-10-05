@@ -1,18 +1,18 @@
 # Progress
 
 ## Current
-- Milestone: 2 (input + bots). Phase: build.
-- M1 done: `src/sim/` (config, rng, glyphs, glyphDerive, types, spatialHash, combat, letters, fog, mobs, world). 37 unit tests in `tests/unit/` pass. `npm run build` passes (stub `src/main.ts`).
+- Milestone: 3 (rendering + playable solo loop). Phase: build.
+- M1 done (core sim, 37 tests). M2 done:  (botInputs, own RNG per bot),  (Keyboard.poll()). 44 tests pass.
 
 ## Next steps
-1. `src/sim/bots.ts`: bot brain producing `PlayerInput` from world (seek pickups, kite mobs, fight, avoid fog, switch letters, use CAPITAL).
-2. `src/input/keyboard.ts`: arrow keys -> mx/my, A-Z -> switchTo, Shift -> capital (edge), Tab -> minimap toggle (UI flag, not sim).
-3. Tests: bots stay out of fog, pick up letters, a full bot match ends (capped, use big-step helpers).
-4. Checkpoint `M2: input and bots`.
+1. : Pixi app, paper texture (generated canvas), glyph drawing from stroke data (Graphics), camera follow, entities (players, mobs, bullets, pickups), fog wash, minimap.
+2. : fixed-timestep loop (accumulator, 30 Hz) driving sim + bots + keyboard; HUD (DOM overlay).
+3.  panel: god, give letter, upgrade, spawn mobs, hitboxes/emitters/shields, FPS/entities.
+4. Playwright smoke test (start vs-bots, no console errors). Checkpoint .
 
 ## Milestones
 1. Core logic + tests  [done]
-2. Input + bots
+2. Input + bots  [done]
 3. Rendering + playable solo loop
 4. Effects + audio
 5. Screens + polish

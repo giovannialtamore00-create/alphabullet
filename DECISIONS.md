@@ -20,3 +20,7 @@ Every judgment call, newest at the bottom. Format: `- [M<n>] decision. Why.`
 - [M1] Mob tiers: slender (/ ( ) ! |) 8hp 150px/s; medium (% = " ?) 24hp 105px/s; chunky (# @ £ $ &) 60hp 68px/s. All slower than players (200). Contact cooldown 0.6 s. Spawn 1050-1300 px from a player at 0.8/s ramping to 4/s; despawn beyond 2600 px from every player.
 - [M1] Simultaneous deaths: least-negative HP places best; if the last players die together, that one wins.
 - [M1] Players do not collide with each other physically; only bullets and mob contact interact.
+- [M2] Bots steer with weighted forces: fog safety (heads for the next circle when <40 s of wait remain), mob kiting (230 px), aim-by-moving vs the nearest enemy (stand where one emitter's ray hits them, ~320 px away, slight strafe), else collect letters (<1600 px) or wander. Output is quantized to 8-way arrow input.
+- [M2] Bots flee when HP < 25 and the enemy has more HP. They re-evaluate letters every 4-10 s (swarm -> more emitters, duel -> heavier bullets, low HP -> shield letter, prefer ready CAPITAL), and fire CAPITAL when an enemy is within 650 px or 5+ mobs are close.
+- [M2] Bots use their own seeded RNG (not the world RNG) so a match replays exactly from seed + recorded inputs.
+- [M2] Letter keys read `KeyboardEvent.code` (works with Shift held and on non-QWERTY layouts). Tab/Esc are UI actions, not sim input.
