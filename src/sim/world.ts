@@ -2,6 +2,8 @@
 import {
   CAPITAL_COOLDOWN,
   CAPITAL_DURATION,
+  CAPITAL_TEMP_HP_FRAC,
+  BOLD,
   DT,
   MAP_SIZE,
   PLAYER_HP,
@@ -12,7 +14,7 @@ import {
   SWITCH_COOLDOWN,
   XP,
 } from './config';
-import { activeCopy, activeForm, creditXp, damageMob, damagePlayer, playerRadius } from './combat';
+import { activeCopy, activeForm, creditXp, damageMob, damagePlayer, playerRadius, refreshMaxHp } from './combat';
 import { createFog, updateFog } from './fog';
 
 import { createCopies, drawFromPool, dropLetters, giveCopy, spawnWave, updatePickups, updateWave } from './letters';
@@ -58,6 +60,8 @@ export function createWorld(seed: number, setups: PlayerSetup[], opts: { mobs?: 
       x: MAP_SIZE / 2 + Math.cos(ang) * rad,
       y: MAP_SIZE / 2 + Math.sin(ang) * rad,
       hp: PLAYER_HP,
+      maxHp: PLAYER_HP,
+      tempHp: 0,
       alive: true,
       letters: [],
       active: null,
@@ -90,6 +94,7 @@ export function createWorld(seed: number, setups: PlayerSetup[], opts: { mobs?: 
 
 function endCapital(w: World, p: Player): void {
   const c = activeCopy(w, p);
+  p.tempHp = 0;
   if (c && c.capitalTimer > 0) {
     c.capitalTimer = 0;
     c.capitalCd = CAPITAL_COOLDOWN;
@@ -119,6 +124,7 @@ function applyInput(w: World, p: Player, inp: PlayerInput): void {
     if (target !== undefined && target !== p.active) {
       endCapital(w, p);
       p.active = target;
+      refreshMaxHp(w, p);
       p.switchCd = SWITCH_COOLDOWN;
       p.morph = 0;
       const rate = activeForm(w, p)!.bullet.rate;
@@ -129,6 +135,7 @@ function applyInput(w: World, p: Player, inp: PlayerInput): void {
   const c = activeCopy(w, p);
   if (inp.capital && c && c.upgraded && c.capitalTimer <= 0 && c.capitalCd <= 0) {
     c.capitalTimer = CAPITAL_DURATION;
+    p.tempHp = p.maxHp * CAPITAL_TEMP_HP_FRAC;
     p.morph = 0;
     w.events.push({ t: 'capital', id: p.id, letter: c.letter, on: true });
   }
@@ -148,6 +155,7 @@ function updateCopies(w: World): void {
       if (c.capitalTimer <= 0) {
         c.capitalTimer = 0;
         c.capitalCd = CAPITAL_COOLDOWN;
+        if (c.owner !== null) w.players[c.owner].tempHp = 0;
         if (c.owner !== null) w.events.push({ t: 'capital', id: c.owner, letter: c.letter, on: false });
       }
     }
@@ -172,7 +180,7 @@ function fire(w: World): void {
           vx: e.dx * b.speed,
           vy: e.dy * b.speed,
           r: b.radius,
-          dmg: b.dmg,
+          dmg: b.dmg * (w.copies[p.active].bold ? BOLD.dmgMul : 1),
           life: e.range / b.speed,
           capital: form.capital,
         });
@@ -225,6 +233,7 @@ function resolveDeaths(w: World): void {
   const aliveAfter = w.players.filter((p) => p.alive && p.hp > 0).length;
   dying.forEach((p, i) => {
     p.alive = false;
+    p.tempHp = 0;
     p.deathTime = w.time;
     p.placement = aliveAfter + dying.length - i;
     const killer = p.lastDamager !== null ? w.players[p.lastDamager] : null;
@@ -297,6 +306,13 @@ export function debugUpgradeActive(w: World, id: number): void {
     c.capitalCd = 0;
     w.events.push({ t: 'upgrade', id, letter: c.letter });
   }
+}
+
+export function debugBoldActive(w: World, id: number): void {
+  const c = activeCopy(w, w.players[id]);
+  if (!c) return;
+  debugUpgradeActive(w, id);
+  creditXp(w, id, c.id, Math.max(0, XP.boldThreshold - c.xp));
 }
 
 export function debugSpawnMobs(w: World, x: number, y: number, count: number, kind?: string): void {

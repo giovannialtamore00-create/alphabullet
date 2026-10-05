@@ -58,3 +58,13 @@ test('visual snapshot of effects (shield waves, CAPITAL, hitboxes)', async ({ pa
   await page.waitForTimeout(250);
   await page.screenshot({ path: 'test-results/effects.png' });
 });
+
+test('visual snapshot of BOLD + CAPITAL temp HP', async ({ page }) => {
+  await page.goto('/?debug');
+  await page.getByRole('button', { name: 'Play vs bots' }).click();
+  await page.waitForFunction(() => (window as any).__game?.world?.tick > 10, null, { timeout: 30_000 });
+  await page.click('[data-k="bold"]');
+  await page.keyboard.press('Shift');
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: 'test-results/bold.png' });
+});

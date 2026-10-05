@@ -1,6 +1,6 @@
 /** ?debug panel: god mode, give any letter, instant upgrade, spawn mobs, hitboxes/emitters/shields, FPS/entities. */
 import { LETTER_KEYS } from '../sim/glyphs';
-import { debugGiveLetter, debugSpawnMobs, debugUpgradeActive } from '../sim/world';
+import { debugBoldActive, debugGiveLetter, debugSpawnMobs, debugUpgradeActive } from '../sim/world';
 import type { Game } from '../game/game';
 
 export function mountDebugPanel(game: Game, parent: HTMLElement): () => void {
@@ -13,6 +13,7 @@ export function mountDebugPanel(game: Game, parent: HTMLElement): () => void {
     <div><select data-k="letter">${LETTER_KEYS.map((k) => `<option>${k}</option>`).join('')}</select>
     <button data-k="give">Give</button></div>
     <button data-k="upgrade">Upgrade active letter</button>
+    <button data-k="bold">Make active letter BOLD</button>
     <button data-k="mobs">Spawn 20 mobs</button>
     <button data-k="fog">Skip fog wait</button>
     <div data-k="stats" class="debug-stats"></div>`;
@@ -23,6 +24,7 @@ export function mountDebugPanel(game: Game, parent: HTMLElement): () => void {
   q<HTMLInputElement>('hit').onchange = (e) => (game.debug.hitboxes = (e.target as HTMLInputElement).checked);
   q('give').onclick = () => debugGiveLetter(game.world, game.localId, q<HTMLSelectElement>('letter').value);
   q('upgrade').onclick = () => debugUpgradeActive(game.world, game.localId);
+  q('bold').onclick = () => debugBoldActive(game.world, game.localId);
   q('mobs').onclick = () => debugSpawnMobs(game.world, me().x, me().y, 20);
   q('fog').onclick = () => {
     if (game.world.fog.phase === 'wait') game.world.fog.timer = 0.1;

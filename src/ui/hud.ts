@@ -2,7 +2,11 @@
 import { CAPITAL_COOLDOWN, CAPITAL_DURATION, FOG_STAGES, XP } from '../sim/config';
 import { activeCopy } from '../sim/combat';
 import { getForm } from '../sim/glyphDerive';
-import type { World } from '../sim/types';
+import type { LetterCopy, World } from '../sim/types';
+
+/** Progress (0..1) toward the copy's next level. */
+const levelProgress = (c: LetterCopy) =>
+  c.bold ? 1 : c.upgraded ? Math.min(1, (c.xp - XP.threshold) / (XP.boldThreshold - XP.threshold)) : Math.min(1, c.xp / XP.threshold);
 import { INK, strokeGlyph } from '../render/glyphCanvas';
 
 const fmt = (s: number) => {
@@ -28,6 +32,7 @@ export class Hud {
   readonly root: HTMLDivElement;
   private hpFill: HTMLDivElement;
   private hpText: HTMLSpanElement;
+  private tempFill: HTMLDivElement;
   private timer: HTMLDivElement;
   private alive: HTMLDivElement;
   private fogInfo: HTMLDivElement;
@@ -48,6 +53,7 @@ export class Hud {
     el('span', 'hud-label', tl).textContent = 'INK';
     const bar = el('div', 'bar', tl);
     this.hpFill = el('div', 'bar-fill', bar);
+    this.tempFill = el('div', 'bar-temp', bar);
     this.hpText = el('span', 'hud-num', tl);
     const top = el('div', 'hud-top', this.root);
     this.timer = el('div', 'hud-timer', top);
@@ -79,12 +85,15 @@ export class Hud {
     const me = w.players[localId];
     const view = w.players[viewId] ?? me;
     const shown = me.alive ? me : view;
-    this.hpFill.style.width = `${Math.max(0, shown.hp)}%`;
+    const hpPct = Math.max(0, (shown.hp / shown.maxHp) * 100);
+    this.hpFill.style.width = `${hpPct}%`;
+    // CAPITAL bonus HP: hatched stripe along the bottom of the bar.
+    this.tempFill.style.width = `${Math.min(100, (shown.tempHp / shown.maxHp) * 100)}%`;
     this.fogWarn.style.display = me.alive && me.inFog ? 'block' : 'none';
     this.textT -= dt;
     if (this.textT > 0) return;
     this.textT = 0.1;
-    this.hpText.textContent = String(Math.max(0, Math.ceil(shown.hp)));
+    this.hpText.textContent = `${Math.max(0, Math.ceil(shown.hp))}${shown.tempHp > 0 ? ` +${Math.ceil(shown.tempHp)}` : ""}${shown.maxHp > 100 ? " BOLD" : ""}`;
     this.timer.textContent = fmt(w.time);
     this.alive.textContent = `${w.players.filter((p) => p.alive).length} / ${w.players.length} letters standing`;
     const f = w.fog;
@@ -118,18 +127,18 @@ export class Hud {
       if (!c) return;
       const cap = c.capitalTimer > 0;
       const active = c.id === p.active;
-      const key = `${c.letter}${cap}${active}${c.upgraded}`;
+      const key = `${c.letter}${cap}${active}${c.upgraded}${c.bold}`;
       if (key !== s.key) {
         s.key = key;
         const ctx = s.canvas.getContext('2d')!;
         ctx.clearRect(0, 0, 64, 64);
         const f = getForm(c.letter, cap || c.upgraded);
-        strokeGlyph(ctx, f.glyph.strokes, 32, 30, cap || c.upgraded ? 40 : 38, active ? '#f3eee2' : INK, 0.12);
+        strokeGlyph(ctx, f.glyph.strokes, 32, 30, cap || c.upgraded ? 40 : 38, active ? '#f3eee2' : INK, c.bold ? 0.2 : 0.12);
         s.box.dataset.key = c.letter;
         s.box.classList.toggle('active', active);
         s.box.classList.toggle('upgraded', c.upgraded);
       }
-      s.xp.style.width = `${c.upgraded ? 100 : Math.min(100, (c.xp / XP.threshold) * 100)}%`;
+      s.xp.style.width = `${levelProgress(c) * 100}%`;
     });
     const c = activeCopy(w, p);
     if (!c) {
@@ -138,8 +147,12 @@ export class Hud {
       this.xpFill.style.width = '0%';
       return;
     }
-    this.xpFill.style.width = `${c.upgraded ? 100 : Math.min(100, (c.xp / XP.threshold) * 100)}%`;
-    this.xpText.textContent = c.upgraded ? `${c.letter} upgraded` : `${c.letter.toLowerCase()} XP ${Math.floor(c.xp)} / ${XP.threshold}`;
+    this.xpFill.style.width = `${levelProgress(c) * 100}%`;
+    this.xpText.textContent = c.bold
+      ? `${c.letter} BOLD (max level)`
+      : c.upgraded
+        ? `Lv1 ${c.letter} - XP ${Math.floor(c.xp)} / ${XP.boldThreshold} to BOLD`
+        : `Lv0 ${c.letter.toLowerCase()} - XP ${Math.floor(c.xp)} / ${XP.threshold} to CAPITAL`;
     if (!c.upgraded) this.capInfo.textContent = 'CAPITAL locked - earn XP with this letter';
     else if (c.capitalTimer > 0) this.capInfo.textContent = `CAPITAL ${c.letter}! ${Math.ceil(c.capitalTimer)}s`;
     else if (c.capitalCd > 0) this.capInfo.textContent = `CAPITAL recharging ${Math.ceil(c.capitalCd)}s`;

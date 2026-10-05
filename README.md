@@ -13,7 +13,7 @@ Everything is original and drawn in code: every glyph is our own stroke path, th
 npm install      # once
 npm run dev      # starts the game at http://localhost:5173
 ```
-Add `?debug` to the URL (http://localhost:5173/?debug) for the debug panel: god mode, give any letter, instant upgrade, spawn mobs, hitboxes/emitters/shield arcs, FPS and entity counts.
+Add `?debug` to the URL (http://localhost:5173/?debug) for the debug panel: god mode, give any letter, instant upgrade, instant BOLD, spawn mobs, hitboxes/emitters/shield arcs, FPS and entity counts.
 
 ## Build for release
 ```bash
@@ -58,9 +58,10 @@ Every later `git push` redeploys automatically.
 - Each player starts with 2 random letters. 8 more lie glowing on the map. Walk over one to pick it up. You can't hold two copies of the same letter, and only 2 copies of each letter exist.
 - When half of the map letters are taken, a 2-minute timer starts, then new letters appear in fresh spots (shown on the minimap).
 - Your active letter fires constantly. Every letter deals the same total damage, split evenly between its stroke ends, so more ends = weaker bullets. Range follows stroke length: a long arm shoots far, a stub barely reaches (b fires far north, barely south).
-- Damage and kills give XP to the letter you are using. When it's full, the letter is **upgraded**: press **Shift** to become its CAPITAL form for 20 s (new shape, new firing pattern, bigger bullets). Then it recharges for 45 s.
+- Damage and kills give XP to the letter you are using. **Level 1:** the letter is upgraded. Press **Shift** to become its CAPITAL form for 20 s (new shape, new firing pattern, bigger bullets) plus temporary HP equal to half your max HP (gone when CAPITAL ends). Then it recharges for 45 s. **Level 2: BOLD.** The letter is drawn bold and, while you use it (small or CAPITAL), you get +30% max HP and +30% damage, permanently.
+- Every symbol you erase heals you 0.5% of your max HP.
 - **Shield letters** (O, D, B, C, Q) block damage on their curved side, up to a cap per second. O guards all round but blocks less; D and B guard one side but block more. Damage over the cap still gets through.
-- Mobs only hurt by touching you. Mobs and players both block bullets.
+- Mobs only hurt by touching you. Mobs and players both block bullets. They come from every side, even from beyond the map edge, and swarm harder (+50%) around letters lying on the ground.
 - The **fog** closes in in stages (the next safe zone is the dashed circle). Standing in it hurts.
 - When a player is erased, their letters drop nearby, *keeping their upgrades*. Death is final: you then spectate. **The last letter standing wins.**
 

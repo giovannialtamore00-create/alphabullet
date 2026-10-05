@@ -34,6 +34,7 @@ export function attachFeedback(game: Game): Effects {
         case 'switch':
           if (e.id === game.viewId) audio.play('switch');
           break;
+        case 'bold':
         case 'upgrade':
           if (e.id === game.viewId) audio.play('upgrade');
           break;

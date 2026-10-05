@@ -50,7 +50,8 @@ export const RESPAWN_MIN_DIST_FROM_OLD = 700;
 export const DROP_SCATTER = 110;
 
 export const XP = {
-  threshold: 400,
+  threshold: 400, // level 1: CAPITAL unlocked
+  boldThreshold: 1200, // level 2: BOLD (PLACEHOLDER: total XP, not given in spec)
   perDamage: 1,
   mobKill: 6,
   playerKill: 120,
@@ -58,6 +59,17 @@ export const XP = {
 
 export const CAPITAL_DURATION = 20;
 export const CAPITAL_COOLDOWN = 45;
+/** Activating CAPITAL grants temporary HP = this x max HP, removed when CAPITAL ends. */
+export const CAPITAL_TEMP_HP_FRAC = 0.5;
+/** Level 2 BOLD letters: permanent +30% max HP and damage while active (both forms). */
+export const BOLD = { hpMul: 1.3, dmgMul: 1.3 };
+/** Each mob kill heals this fraction of max HP. */
+export const MOB_KILL_HEAL_FRAC = 0.005;
+/** Spawn-rate multiplier for players near a letter lying on the ground. */
+export const LETTER_AREA_SPAWN_MUL = 1.5;
+export const LETTER_AREA_RADIUS = 900;
+/** Mobs may spawn this far beyond the map edge and walk in, so edge-huggers still get circled. */
+export const MOB_SPAWN_OFFMAP = 1400;
 
 export interface MobTier {
   hp: number;
@@ -66,9 +78,9 @@ export interface MobTier {
   dmg: number;
 }
 export const MOB_TIERS: Record<'slender' | 'medium' | 'chunky', MobTier> = {
-  slender: { hp: 5.6, speed: 150, radius: 12, dmg: 4 },
-  medium: { hp: 16.8, speed: 105, radius: 16, dmg: 6 },
-  chunky: { hp: 42, speed: 68, radius: 22, dmg: 10 },
+  slender: { hp: 4.48, speed: 150, radius: 12, dmg: 4 },
+  medium: { hp: 13.44, speed: 105, radius: 16, dmg: 6 },
+  chunky: { hp: 33.6, speed: 68, radius: 22, dmg: 10 },
 };
 export const MOB_CONTACT_COOLDOWN = 0.8;
 export const MOB_CAP_PER_PLAYER = 60;
@@ -79,7 +91,7 @@ export const MOB_DESPAWN_DIST = 2600;
 export const mobSpawnRate = (t: number) => Math.min(1.6, 0.75 + t / 600);
 /** Weight of [slender, medium, chunky] at time t. */
 export const mobTierWeights = (t: number): [number, number, number] => [
-  Math.max(2, 6 - t / 120),
+  Math.max(2, 6 - t / 120) * 1.3, // +30% small mobs
   2 + t / 120,
   0.5 + t / 90,
 ];

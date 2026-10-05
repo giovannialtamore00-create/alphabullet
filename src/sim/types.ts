@@ -17,6 +17,8 @@ export interface Player {
   x: number;
   y: number;
   hp: number;
+  maxHp: number; // 100, or x1.3 while a BOLD letter is active
+  tempHp: number; // CAPITAL bonus HP, absorbed before hp
   alive: boolean;
   letters: number[]; // copy ids
   active: number | null; // copy id
@@ -41,7 +43,8 @@ export interface LetterCopy {
   id: number; // index in world.copies
   letter: string;
   xp: number;
-  upgraded: boolean;
+  upgraded: boolean; // level 1
+  bold: boolean; // level 2
   state: CopyState;
   owner: number | null;
   x: number;
@@ -110,6 +113,7 @@ export type SimEvent =
   | { t: 'pickup'; id: number; letter: string; x: number; y: number }
   | { t: 'switch'; id: number; letter: string }
   | { t: 'upgrade'; id: number; letter: string }
+  | { t: 'bold'; id: number; letter: string }
   | { t: 'capital'; id: number; letter: string; on: boolean }
   | { t: 'shieldBlock'; id: number; x: number; y: number; amount: number; angle: number }
   | { t: 'fogStage'; stage: number }

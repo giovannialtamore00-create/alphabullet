@@ -194,6 +194,9 @@ export class Game {
         case 'pickup':
           if (e.id === me) this.hud.toast(`Picked up ${e.letter}`);
           break;
+        case 'bold':
+          if (e.id === me) this.hud.toast(`${e.letter} is now BOLD! +30% HP and damage while you use it`, true);
+          break;
         case 'upgrade':
           if (e.id === me) this.hud.toast(`${e.letter} upgraded! Press SHIFT for CAPITAL ${e.letter}`, true);
           break;

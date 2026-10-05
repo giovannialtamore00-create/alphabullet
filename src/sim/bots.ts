@@ -49,6 +49,7 @@ function letterScore(w: World, p: Player, copyId: number, mobsNear: number, enem
   if (enemyNear) s += f.bullet.dmg * 3; // focus vs players
   if (p.hp < 40 && f.shieldCap > 0) s += 40;
   if (c.upgraded && c.capitalCd <= 0) s += 25;
+  if (c.bold) s += 30;
   return s;
 }
 

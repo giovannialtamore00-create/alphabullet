@@ -1,4 +1,4 @@
-import { XP } from './config';
+import { BOLD, PLAYER_HP, XP } from './config';
 import { getForm, shieldCovers, type DerivedForm } from './glyphDerive';
 import type { LetterCopy, Mob, Player, World } from './types';
 
@@ -15,15 +15,33 @@ export function playerRadius(w: World, p: Player): number {
   return activeForm(w, p)?.radius ?? 18;
 }
 
-/** Add XP to the copy that dealt damage, if its owner still holds it. Unlocks the upgrade at threshold. */
+/**
+ * Max HP follows the active letter (x1.3 if it is BOLD). HP scales proportionally on change,
+ * so switching letters can never create or destroy HP.
+ */
+export function refreshMaxHp(w: World, p: Player): void {
+  const c = activeCopy(w, p);
+  const max = PLAYER_HP * (c?.bold ? BOLD.hpMul : 1);
+  if (max !== p.maxHp) {
+    p.hp = (p.hp * max) / p.maxHp;
+    p.maxHp = max;
+  }
+}
+
+/** Add XP to the copy that dealt damage, if its owner still holds it. Level 1 = CAPITAL, level 2 = BOLD. */
 export function creditXp(w: World, attacker: number | null, copyId: number | null, amount: number): void {
   if (attacker === null || copyId === null) return;
   const c = w.copies[copyId];
-  if (!c || c.owner !== attacker || c.upgraded) return;
+  if (!c || c.owner !== attacker || c.bold) return;
   c.xp += amount;
-  if (c.xp >= XP.threshold) {
+  if (!c.upgraded && c.xp >= XP.threshold) {
     c.upgraded = true;
     w.events.push({ t: 'upgrade', id: attacker, letter: c.letter });
+  }
+  if (c.upgraded && c.xp >= XP.boldThreshold) {
+    c.bold = true;
+    w.events.push({ t: 'bold', id: attacker, letter: c.letter });
+    refreshMaxHp(w, w.players[attacker]);
   }
 }
 
@@ -54,6 +72,17 @@ export function damagePlayer(
     }
   }
   if (amount <= 0) return 0;
+  if (p.tempHp > 0) {
+    // CAPITAL bonus HP soaks damage first.
+    const soak = Math.min(p.tempHp, amount);
+    p.tempHp -= soak;
+    amount -= soak;
+    if (amount <= 0) {
+      w.events.push({ t: 'hit', target: 'player', id: p.id, x: p.x, y: p.y, dmg: soak, by: attacker });
+      if (attacker !== null && attacker !== p.id) p.lastDamager = attacker;
+      return soak;
+    }
+  }
   p.hp -= amount;
   if (attacker !== null && attacker !== p.id) p.lastDamager = attacker;
   w.events.push({ t: 'hit', target: 'player', id: p.id, x: p.x, y: p.y, dmg: amount, by: attacker });

@@ -119,6 +119,13 @@ export class Effects {
           this.ring(p.x, p.y, { follow: p.id, r0: 18, grow: 90, life: 0.25, width: 3, alpha: 0.6 });
           break;
         }
+        case 'bold': {
+          const p = w.players[e.id];
+          this.ring(p.x, p.y, { follow: p.id, r0: 24, grow: 260, life: 0.9, width: 12 });
+          this.droplets(p.x, p.y, 20, 360, 0.35, 0.6);
+          if (e.id === this.viewId) this.r.shake(8);
+          break;
+        }
         case 'upgrade': {
           const p = w.players[e.id];
           this.ring(p.x, p.y, { follow: p.id, r0: 20, grow: 160, life: 0.8, width: 5, color: 0xd99a1e });

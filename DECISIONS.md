@@ -51,3 +51,9 @@ Every judgment call, newest at the bottom. Format: `- [M<n>] decision. Why.`
 - [Playtest 1] Equal damage: every non-shield letter deals the same total dps (36 lowercase / 61 CAPITAL), split evenly between its emitters (no bonus for extra emitters). Shield letters keep x0.4.
 - [Playtest 1] Range per emitter = 1000 px x arm length (stroke length from the free end to the nearest joint; half the stroke if both ends are free), clamped 140-1000 px, x1.2 in CAPITAL. E.g. b: north 554 px, south 140 px. Note: a leg reached via an arch counts the arch too (n's right leg, m's last leg are long-range).
 - [Playtest 1] Mob spawn rate at the start x3 (0.25 -> 0.75/s per player, same ramp); mob HP -30% (5.6 / 16.8 / 42).
+- [Playtest 2] Mob HP -20% more (4.48 / 13.44 / 33.6).
+- [Playtest 2] CAPITAL grants temp HP = 50% of max HP; it soaks damage after shields and before HP, and is removed when CAPITAL ends, when you switch letters, or on death.
+- [Playtest 2] Letter levels: 1 = CAPITAL (400 XP, unchanged), 2 = BOLD at 1200 total XP (PLACEHOLDER, not in spec). BOLD is permanent on the copy (kept when dropped), applies to both forms: +30% max HP and +30% bullet damage while active. Max HP follows the active letter and HP scales proportionally on switch, so switching never creates HP. BOLD glyphs are drawn with 1.6x stroke width.
+- [Playtest 2] Each mob kill heals 0.5% of the killer's max HP.
+- [Playtest 2] Small (slender) mob weight x1.3. Mobs may spawn up to 1400 px beyond the map edge and walk in, so players at the edge are surrounded too.
+- [Playtest 2] Spawn rate x1.5 for any player within 900 px of a letter on the ground (map letters and death drops) until it is picked up.

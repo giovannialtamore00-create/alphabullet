@@ -80,12 +80,13 @@ export class GameRenderer {
   }
 
   /** Cached white glyph texture (drawn at 2x; sprites use scale 0.5). */
-  letterTex(letter: string, capital: boolean): Texture {
-    const key = letter + (capital ? '!' : '');
+  letterTex(letter: string, capital: boolean, bold = false): Texture {
+    const key = letter + (capital ? '!' : '') + (bold ? 'B' : '');
     let t = this.tex.get(key);
     if (!t) {
       const f = getForm(letter, capital);
-      t = Texture.from(glyphCanvas(f.glyph.strokes, f.size, 2, '#ffffff', capital ? 0.13 : 0.11));
+      // BOLD letters are literally drawn bold: thicker strokes.
+      t = Texture.from(glyphCanvas(f.glyph.strokes, f.size, 2, '#ffffff', (capital ? 0.13 : 0.11) * (bold ? 1.6 : 1)));
       this.tex.set(key, t);
     }
     return t;
@@ -207,7 +208,7 @@ export class GameRenderer {
     for (const c of w.copies) {
       if (c.state !== 'ground' || !inView(c.x, c.y, 120)) continue;
       seen.add(c.id);
-      const key = c.letter + (c.upgraded ? '!' : '');
+      const key = c.letter + (c.upgraded ? '!' : '') + (c.bold ? 'B' : '');
       let v = this.pickups.get(c.id);
       if (!v || v.key !== key) {
         if (v) v.root.destroy({ children: true });
@@ -215,7 +216,7 @@ export class GameRenderer {
         const halo = new Sprite(this.glowTex);
         halo.anchor.set(0.5);
         halo.tint = c.upgraded ? GLOW_UP : GLOW;
-        const glyph = new Sprite(this.letterTex(c.letter, c.upgraded));
+        const glyph = new Sprite(this.letterTex(c.letter, c.upgraded, c.bold));
         glyph.anchor.set(0.5);
         glyph.tint = INK;
         root.addChild(halo, glyph);
@@ -329,9 +330,9 @@ export class GameRenderer {
       const form = activeForm(w, p);
       if (!c || !form) continue;
       const cap = c.capitalTimer > 0;
-      const key = c.letter + (cap ? '!' : '');
+      const key = c.letter + (cap ? '!' : '') + (c.bold ? 'B' : '');
       if (key !== v.key) {
-        v.glyph.texture = this.letterTex(c.letter, cap);
+        v.glyph.texture = this.letterTex(c.letter, cap, c.bold);
         v.key = key;
       }
       // Morph: quick squash-and-grow on switch / CAPITAL.
@@ -352,7 +353,8 @@ export class GameRenderer {
       if (p.id !== opts.localId) {
         const bw = 40;
         v.bar.rect(-bw / 2, r + 6, bw, 4).stroke({ width: 1, color: INK, alpha: 0.6 });
-        v.bar.rect(-bw / 2, r + 6, (bw * Math.max(0, p.hp)) / 100, 4).fill({ color: INK, alpha: 0.75 });
+        v.bar.rect(-bw / 2, r + 6, (bw * Math.max(0, p.hp)) / p.maxHp, 4).fill({ color: INK, alpha: 0.75 });
+        if (p.tempHp > 0) v.bar.rect(-bw / 2, r + 11, Math.min(bw, (bw * p.tempHp) / p.maxHp), 2).fill({ color: 0xd99a1e, alpha: 0.9 });
       }
     }
   }

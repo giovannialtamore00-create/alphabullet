@@ -7,6 +7,10 @@ import {
   MOB_DESPAWN_DIST,
   MOB_SPAWN_DIST,
   MOB_TIERS,
+  LETTER_AREA_RADIUS,
+  LETTER_AREA_SPAWN_MUL,
+  MOB_KILL_HEAL_FRAC,
+  MOB_SPAWN_OFFMAP,
   SPATIAL_CELL,
   XP,
   mobSpawnRate,
@@ -56,8 +60,11 @@ function spawnMobs(w: World, dt: number): void {
   const alive = w.players.filter((p) => p.alive);
   const cap = Math.min(MOB_CAP_TOTAL, MOB_CAP_PER_PLAYER * alive.length);
   const rate = mobSpawnRate(w.time);
+  const ground = w.copies.filter((c) => c.state === 'ground');
   for (const p of alive) {
-    p.mobAcc += rate * dt;
+    // Letters lying on the ground attract more mobs until someone picks them up.
+    const nearLetter = ground.some((c) => Math.abs(c.x - p.x) < LETTER_AREA_RADIUS && Math.abs(c.y - p.y) < LETTER_AREA_RADIUS && Math.hypot(c.x - p.x, c.y - p.y) < LETTER_AREA_RADIUS);
+    p.mobAcc += rate * (nearLetter ? LETTER_AREA_SPAWN_MUL : 1) * dt;
     while (p.mobAcc >= 1) {
       p.mobAcc -= 1;
       if (w.mobs.length >= cap) continue;
@@ -65,7 +72,9 @@ function spawnMobs(w: World, dt: number): void {
       const d = w.rng.range(MOB_SPAWN_DIST[0], MOB_SPAWN_DIST[1]);
       const x = p.x + Math.cos(ang) * d;
       const y = p.y + Math.sin(ang) * d;
-      if (x < 0 || y < 0 || x > MAP_SIZE || y > MAP_SIZE) continue;
+      // Off-map spawns are allowed (mobs walk in), so players at the edge are still surrounded.
+      const o = MOB_SPAWN_OFFMAP;
+      if (x < -o || y < -o || x > MAP_SIZE + o || y > MAP_SIZE + o) continue;
       w.mobs.push(makeMob(w, pickKind(w), x, y));
     }
   }
@@ -138,6 +147,7 @@ export function removeDeadMobs(w: World): void {
       const killer = w.players.find((p) => p.id === m.lastHitBy);
       if (killer) {
         killer.mobKills++;
+        if (killer.alive) killer.hp = Math.min(killer.maxHp, killer.hp + killer.maxHp * MOB_KILL_HEAL_FRAC);
         creditXp(w, killer.id, m.lastHitCopy, XP.mobKill);
       }
     }

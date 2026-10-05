@@ -24,6 +24,7 @@ export function createCopies(): LetterCopy[] {
         letter,
         xp: 0,
         upgraded: false,
+        bold: false,
         state: 'pool',
         owner: null,
         x: 0,

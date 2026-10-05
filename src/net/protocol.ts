@@ -106,9 +106,11 @@ export function encodeSnapshot(w: World, cv: ClientView, events: SimEvent[]): Sn
       r2(p.morph),
       p.deathTime ?? -1,
       r1(p.shieldBudget),
+      r1(p.maxHp),
+      r1(p.tempHp),
     ]),
     pl: w.players.map((p) => p.letters),
-    c: w.copies.map((c) => [STATES.indexOf(c.state), c.owner ?? -1, r0(c.x), r0(c.y), r0(c.xp), c.upgraded ? 1 : 0, r1(c.capitalTimer), r1(c.capitalCd), c.wave ? 1 : 0]),
+    c: w.copies.map((c) => [STATES.indexOf(c.state), c.owner ?? -1, r0(c.x), r0(c.y), r0(c.xp), c.upgraded ? 1 : 0, r1(c.capitalTimer), r1(c.capitalCd), c.wave ? 1 : 0, c.bold ? 1 : 0]),
     m: w.mobs.filter((m) => near(m.x, m.y)).map((m) => [m.id, MOB_KEYS.indexOf(m.kind), r0(m.x), r0(m.y), r0(m.hp)]),
     bn,
     bg,
@@ -142,6 +144,8 @@ export function applySnapshot(w: World, s: Snapshot, opts: { keepLocal?: number 
     p.morph = a[10];
     p.deathTime = a[11] < 0 ? null : a[11];
     p.shieldBudget = a[12];
+    p.maxHp = a[13];
+    p.tempHp = a[14];
     p.letters = s.pl[i] ?? [];
   });
   s.c.forEach((a, i) => {
@@ -155,6 +159,7 @@ export function applySnapshot(w: World, s: Snapshot, opts: { keepLocal?: number 
     c.capitalTimer = a[6];
     c.capitalCd = a[7];
     c.wave = !!a[8];
+    c.bold = !!a[9];
   });
   const old = new Map(w.mobs.map((m) => [m.id, m]));
   w.mobs = s.m.map(([id, k, x, y, hp]) => {
