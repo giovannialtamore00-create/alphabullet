@@ -54,7 +54,9 @@ export function showJoin(onJoin: (code: string, name: string) => void, onBack: (
     join.disabled = true;
     onJoin(c, name.value.trim() || 'Player');
   };
-  code.onkeydown = (e) => e.key === 'Enter' && go();
+  code.onkeydown = (e) => {
+    if (e.key === 'Enter') go(); // returning false from onkeydown would block typing
+  };
   const join = button('Join', go, { cls: 'primary' });
   showScreen(
     h('div', { cls: 'screen' }, h('h2', {}, 'Join a match'), h('div', { cls: 'panel' }, h('label', { cls: 'field' }, 'Room code ', code), h('br'), h('label', { cls: 'field' }, 'Your name ', name)), status, h('div', { cls: 'menu-buttons row' }, join, button('Back', onBack))),
