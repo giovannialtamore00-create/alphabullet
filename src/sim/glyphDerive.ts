@@ -14,10 +14,14 @@ export interface Emitter {
   arm: number;
   /** Bullet range in px, proportional to arm. */
   range: number;
+  /** Damage multiplier on this emitter's share: shorter range = more damage. */
+  dmgMul: number;
+  /** Bullets per volley; >1 = shotgun burst spread over BULLET.dotSpreadDeg, damage split between them. */
+  pellets: number;
 }
 export interface BulletStats {
   rate: number; // volleys per second (all emitters fire together)
-  dmg: number; // per bullet
+  dmg: number; // per bullet, before the emitter's dmgMul / pellets split
   speed: number;
   radius: number;
   life: number;
@@ -150,7 +154,7 @@ export function deriveEmitters(strokes: Stroke[]): Emitter[] {
       }
       if (blocked) continue;
       const dup = out.some((e) => Math.hypot(e.x - p.x, e.y - p.y) < 0.05 && e.dx === dx && e.dy === dy);
-      if (!dup) out.push({ x: p.x, y: p.y, dx, dy, arm: armLength(strokes, si, end), range: 0 });
+      if (!dup) out.push({ x: p.x, y: p.y, dx, dy, arm: armLength(strokes, si, end), range: 0, dmgMul: 1, pellets: 1 });
     }
   });
   return out;
@@ -165,7 +169,7 @@ export function emittersFromShields(shields: ShieldArc[]): Emitter[] {
       const [dx, dy] = snap8(Math.cos((f * Math.PI) / 180), Math.sin((f * Math.PI) / 180));
       // Pulses reach as far as half the curve they come from.
       const arm = (s.r * Math.min(s.width, 90) * Math.PI) / 180;
-      out.push({ x: s.cx + s.r * dx, y: s.cy + s.r * dy, dx, dy, arm, range: 0 });
+      out.push({ x: s.cx + s.r * dx, y: s.cy + s.r * dy, dx, dy, arm, range: 0, dmgMul: 1, pellets: 1 });
     }
   }
   return out;
@@ -193,7 +197,16 @@ export function deriveForm(letter: string, glyph: GlyphForm, capital: boolean): 
     emittersFromShield = true;
   }
   const rangeMul = capital ? BULLET.capitalRangeMul : 1;
-  for (const e of emitters) e.range = Math.min(BULLET.maxRange, Math.max(BULLET.minRange, e.arm * BULLET.rangePerUnit)) * rangeMul;
+  for (const e of emitters) {
+    const base = Math.min(BULLET.maxRange, Math.max(BULLET.minRange, e.arm * BULLET.rangePerUnit));
+    e.range = base * rangeMul;
+    if (e.arm <= BULLET.dotMaxArm) {
+      e.dmgMul = BULLET.dotDmgMul;
+      e.pellets = BULLET.dotPellets;
+    } else {
+      e.dmgMul = 1 + (BULLET.shortRangeBonus * (BULLET.maxRange - base)) / (BULLET.maxRange - BULLET.minRange);
+    }
+  }
   const n = Math.max(1, emitters.length);
   const isShield = glyph.shields.length > 0;
   const rate = BULLET.baseRate / Math.sqrt(n);

@@ -43,7 +43,7 @@ function safeCircle(w: World) {
 function letterScore(w: World, p: Player, copyId: number, mobsNear: number, enemyNear: boolean): number {
   const c = w.copies[copyId];
   const f = getForm(c.letter, false);
-  const dps = f.bullet.dmg * f.bullet.rate * f.emitters.length;
+  const dps = f.bullet.dmg * f.bullet.rate * f.emitters.reduce((a, e) => a + e.dmgMul, 0);
   let s = dps;
   if (mobsNear > 4) s += f.emitters.length * 6; // coverage vs swarms
   if (enemyNear) s += f.bullet.dmg * 3; // focus vs players

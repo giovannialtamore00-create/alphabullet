@@ -57,3 +57,6 @@ Every judgment call, newest at the bottom. Format: `- [M<n>] decision. Why.`
 - [Playtest 2] Each mob kill heals 0.5% of the killer's max HP.
 - [Playtest 2] Small (slender) mob weight x1.3. Mobs may spawn up to 1400 px beyond the map edge and walk in, so players at the edge are surrounded too.
 - [Playtest 2] Spawn rate x1.5 for any player within 900 px of a letter on the ground (map letters and death drops) until it is picked up.
+- [Playtest 3] Mob HP -20% more (3.584 / 10.752 / 26.88). Player bullet damage +30% (baseDps 36 -> 46.8, applies to PvP too).
+- [Playtest 3] Range-based damage: each emitter keeps its equal share of the letter's DPS, then x(1 + 0.5 x (1000 - range) / (1000 - 140)) using the pre-CAPITAL range. Shortest strokes (140 px) +50%, longest (1000 px) +0%. A letter's total output can now exceed the old per-letter cap; range balances it.
+- [Playtest 3] Dot emitters (arm <= 0.06, i.e. the dots of lowercase i and j; data rule, not per-letter) fire a 6-pellet shotgun burst in a 70 deg cone, total x2 damage split across pellets. Point-blank all pellets hit (+100%); farther away pellets spread and miss. Pellet count and cone width are PLACEHOLDER.

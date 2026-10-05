@@ -24,13 +24,20 @@ export const BULLET = {
   maxRange: 1000,
   capitalRangeMul: 1.2,
   radius: 5,
-  baseDps: 36, // total damage/sec of a 1-emitter lowercase letter
+  baseDps: 46.8, // total damage/sec of a 1-emitter lowercase letter (36 x1.3, playtest 3)
   perExtraEmitterDps: 0, // every letter deals the same total; split evenly between emitters
   baseRate: 6, // shots/sec for 1 emitter; divided by sqrt(emitters)
   shieldLetterDpsMul: 0.4,
   capitalDpsMul: 1.7,
   capitalRadiusMul: 1.6,
   capitalSpeedMul: 1.15,
+  /** Short strokes hit harder: x(1 + shortRangeBonus) at minRange, fading linearly to x1 at maxRange. */
+  shortRangeBonus: 0.5,
+  /** Emitters with an arm this short or shorter (the dot on i/j) fire a shotgun burst instead. */
+  dotMaxArm: 0.06,
+  dotDmgMul: 2.0, // total burst damage vs. the emitter's normal share (all pellets hitting)
+  dotPellets: 6,
+  dotSpreadDeg: 70, // full cone width
 };
 
 export const SHIELD = {
@@ -78,9 +85,9 @@ export interface MobTier {
   dmg: number;
 }
 export const MOB_TIERS: Record<'slender' | 'medium' | 'chunky', MobTier> = {
-  slender: { hp: 4.48, speed: 150, radius: 12, dmg: 4 },
-  medium: { hp: 13.44, speed: 105, radius: 16, dmg: 6 },
-  chunky: { hp: 33.6, speed: 68, radius: 22, dmg: 10 },
+  slender: { hp: 3.584, speed: 150, radius: 12, dmg: 4 },
+  medium: { hp: 10.752, speed: 105, radius: 16, dmg: 6 },
+  chunky: { hp: 26.88, speed: 68, radius: 22, dmg: 10 },
 };
 export const MOB_CONTACT_COOLDOWN = 0.8;
 export const MOB_CAP_PER_PLAYER = 60;

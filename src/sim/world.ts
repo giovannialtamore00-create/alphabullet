@@ -4,6 +4,7 @@ import {
   CAPITAL_DURATION,
   CAPITAL_TEMP_HP_FRAC,
   BOLD,
+  BULLET,
   DT,
   MAP_SIZE,
   PLAYER_HP,
@@ -170,20 +171,27 @@ function fire(w: World): void {
     p.fireTimer -= DT;
     while (p.fireTimer <= 0) {
       p.fireTimer += 1 / b.rate;
-      for (const e of form.emitters)
-        w.bullets.push({
-          id: w.nextId++,
-          owner: p.id,
-          copyId: p.active,
-          x: p.x + e.x * form.size,
-          y: p.y + e.y * form.size,
-          vx: e.dx * b.speed,
-          vy: e.dy * b.speed,
-          r: b.radius,
-          dmg: b.dmg * (w.copies[p.active].bold ? BOLD.dmgMul : 1),
-          life: e.range / b.speed,
-          capital: form.capital,
-        });
+      const boldMul = w.copies[p.active].bold ? BOLD.dmgMul : 1;
+      for (const e of form.emitters) {
+        const ang0 = Math.atan2(e.dy, e.dx);
+        const spread = e.pellets > 1 ? (BULLET.dotSpreadDeg * Math.PI) / 180 : 0;
+        for (let k = 0; k < e.pellets; k++) {
+          const ang = e.pellets > 1 ? ang0 - spread / 2 + (spread * k) / (e.pellets - 1) : ang0;
+          w.bullets.push({
+            id: w.nextId++,
+            owner: p.id,
+            copyId: p.active,
+            x: p.x + e.x * form.size,
+            y: p.y + e.y * form.size,
+            vx: e.pellets > 1 ? Math.cos(ang) * b.speed : e.dx * b.speed,
+            vy: e.pellets > 1 ? Math.sin(ang) * b.speed : e.dy * b.speed,
+            r: b.radius,
+            dmg: (b.dmg * e.dmgMul * boldMul) / e.pellets,
+            life: e.range / b.speed,
+            capital: form.capital,
+          });
+        }
+      }
       w.events.push({ t: 'shot', owner: p.id, x: p.x, y: p.y, capital: form.capital });
     }
   }

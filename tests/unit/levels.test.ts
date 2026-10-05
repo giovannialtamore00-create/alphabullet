@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { BOLD, CAPITAL_TEMP_HP_FRAC, DT, LETTER_AREA_SPAWN_MUL, MAP_SIZE, MOB_KILL_HEAL_FRAC, MOB_TIERS, PLAYER_HP, XP, mobSpawnRate, mobTierWeights } from '../../src/sim/config';
+import { BOLD, BULLET, CAPITAL_TEMP_HP_FRAC, DT, LETTER_AREA_SPAWN_MUL, MAP_SIZE, MOB_KILL_HEAL_FRAC, MOB_TIERS, PLAYER_HP, XP, mobSpawnRate, mobTierWeights } from '../../src/sim/config';
 import { activeCopy, creditXp, damagePlayer } from '../../src/sim/combat';
 import { makeMob, updateMobs } from '../../src/sim/mobs';
-import type { World } from '../../src/sim/types';
+import { NO_INPUT, type World } from '../../src/sim/types';
 import { debugBoldActive, debugUpgradeActive, step } from '../../src/sim/world';
+import { getForm } from '../../src/sim/glyphDerive';
 import { isolate, testWorld } from './helpers';
 
 const cap = { mx: 0, my: 0, switchTo: null, capital: true };
@@ -96,10 +97,10 @@ describe('CAPITAL temporary HP', () => {
 });
 
 describe('mobs', () => {
-  it('HP is 70% x 80% of the original values', () => {
-    expect(MOB_TIERS.slender.hp).toBeCloseTo(8 * 0.7 * 0.8);
-    expect(MOB_TIERS.medium.hp).toBeCloseTo(24 * 0.7 * 0.8);
-    expect(MOB_TIERS.chunky.hp).toBeCloseTo(60 * 0.7 * 0.8);
+  it('HP is 70% x 80% x 80% of the original values', () => {
+    expect(MOB_TIERS.slender.hp).toBeCloseTo(8 * 0.7 * 0.8 * 0.8);
+    expect(MOB_TIERS.medium.hp).toBeCloseTo(24 * 0.7 * 0.8 * 0.8);
+    expect(MOB_TIERS.chunky.hp).toBeCloseTo(60 * 0.7 * 0.8 * 0.8);
   });
 
   it('killing a mob heals 0.5% of max HP', () => {
@@ -158,4 +159,34 @@ describe('mobs', () => {
     expect(count(true)).toBeCloseTo(base * LETTER_AREA_SPAWN_MUL, -1);
   });
 
+});
+
+describe('range-based damage (playtest 3)', () => {
+  it('shorter strokes deal more per shot: +50% at min range, +0% at max range', () => {
+    const t = getForm('T', false); // arms of ~296, 689, 196, 196 px
+    const byRange = [...t.emitters].sort((a, b) => a.range - b.range);
+    for (let i = 1; i < byRange.length; i++) expect(byRange[i].dmgMul).toBeLessThanOrEqual(byRange[i - 1].dmgMul);
+    const a = getForm('A', false).emitters.find((e) => e.range === BULLET.minRange)!;
+    expect(a.dmgMul).toBeCloseTo(1.5);
+    const w = getForm('W', false).emitters[0];
+    expect(w.range).toBe(BULLET.maxRange);
+    expect(w.dmgMul).toBeCloseTo(1);
+  });
+
+  it('the i dot is a shotgun: 6 pellets in a cone, +100% total damage', () => {
+    const dot = getForm('I', false).emitters.find((e) => e.pellets > 1)!;
+    expect(dot.pellets).toBe(BULLET.dotPellets);
+    expect(dot.dmgMul).toBe(2);
+    const w = setup();
+    const p = w.players[0];
+    w.copies[p.active!].letter = 'I';
+    p.fireTimer = 0;
+    step(w, { 0: NO_INPUT });
+    const f = getForm('I', false);
+    const shots = w.bullets.filter((b) => b.owner === 0 && b.vy < 0);
+    expect(shots.length).toBe(BULLET.dotPellets);
+    const total = shots.reduce((s, b) => s + b.dmg, 0);
+    expect(total).toBeCloseTo(f.bullet.dmg * 2);
+    expect(new Set(shots.map((b) => b.vx.toFixed(1))).size).toBe(BULLET.dotPellets);
+  });
 });
