@@ -28,6 +28,8 @@ html, body { margin: 0; height: 100%; background: var(--paper); overflow: hidden
 .slot.upgraded { border-width: 3px; }
 .slot-glyph { width: 46px; height: 46px; }
 .slot-xp { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--accent); }
+.slot-hp { position: absolute; left: 0; bottom: 5px; height: 4px; background: var(--ink); opacity: .75; }
+.slot.active .slot-hp { background: var(--paper); }
 .slot.active .slot-xp { background: #e0a040; }
 .hud-xp { display: flex; align-items: center; gap: 8px; }
 .hud-xp .bar { width: 200px; }

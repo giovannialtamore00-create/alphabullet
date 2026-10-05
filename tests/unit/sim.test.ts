@@ -15,7 +15,7 @@ import { activeCopy, activeForm, damagePlayer } from '../../src/sim/combat';
 import { updateFog } from '../../src/sim/fog';
 import { updateWave, waveCount, updatePickups } from '../../src/sim/letters';
 import { makeMob } from '../../src/sim/mobs';
-import type { World } from '../../src/sim/types';
+import type { Player, World } from '../../src/sim/types';
 import { createWorld, debugGiveLetter, debugUpgradeActive, hashWorld, removePlayer, step } from '../../src/sim/world';
 import { isolate, run, testWorld } from './helpers';
 
@@ -343,6 +343,7 @@ describe('death and drops', () => {
     debugUpgradeActive(w, 0);
     debugGiveLetter(w, 0, 'Z');
     const p = w.players[0];
+    for (const id of p.letters) w.copies[id].hp = 0; // every letter is out of ink
     p.hp = 0;
     p.lastDamager = 1;
     step(w, {});
@@ -409,11 +410,17 @@ describe('closing fog', () => {
   });
 });
 
+/** Leave the player with only their active letter, so running out of HP eliminates them. */
+function lastLetter(p: Player): Player {
+  p.letters = [p.active!];
+  return p;
+}
+
 describe('win condition', () => {
   it('last player standing wins', () => {
     const w = testWorld();
     isolate(w);
-    for (const p of w.players.slice(1)) p.hp = 0;
+    for (const p of w.players.slice(1)) lastLetter(p).hp = 0;
     step(w, {});
     expect(w.over).toBe(true);
     expect(w.winner).toBe(0);
@@ -425,9 +432,9 @@ describe('win condition', () => {
   it('if the last players die together, the least-dead wins', () => {
     const w = testWorld(1, 3);
     isolate(w);
-    w.players[0].hp = -5;
-    w.players[1].hp = -1;
-    w.players[2].hp = -9;
+    lastLetter(w.players[0]).hp = -5;
+    lastLetter(w.players[1]).hp = -1;
+    lastLetter(w.players[2]).hp = -9;
     step(w, {});
     expect(w.over).toBe(true);
     expect(w.winner).toBe(1);

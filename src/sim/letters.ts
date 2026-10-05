@@ -5,11 +5,12 @@ import {
   GROUND_LETTERS,
   MAP_SIZE,
   PICKUP_RADIUS,
+  PLAYER_HP,
   RESPAWN_DELAY,
   RESPAWN_MIN_DIST_FROM_OLD,
   RESPAWN_THRESHOLD,
 } from './config';
-import { playerRadius } from './combat';
+import { copyMaxHp, playerRadius } from './combat';
 import { LETTER_KEYS } from './glyphs';
 import type { LetterCopy, Player, World } from './types';
 
@@ -32,6 +33,7 @@ export function createCopies(): LetterCopy[] {
         wave: false,
         capitalTimer: 0,
         capitalCd: 0,
+        hp: PLAYER_HP,
       });
   return out;
 }
@@ -51,7 +53,11 @@ export function giveCopy(_w: World, p: Player, c: LetterCopy): void {
   c.owner = p.id;
   c.wave = false;
   p.letters.push(c.id);
-  if (p.active === null) p.active = c.id;
+  if (p.active === null) {
+    p.active = c.id;
+    p.hp = c.hp;
+    p.maxHp = copyMaxHp(c);
+  }
 }
 
 /**
@@ -146,19 +152,22 @@ export function updateWave(w: World, dt: number): void {
   }
 }
 
+/** Put one copy on the ground near (x, y) as a normal pickup, keeping XP/upgrade state. HP refills. */
+export function dropCopy(w: World, c: LetterCopy, x: number, y: number): void {
+  const ang = w.rng.next() * Math.PI * 2;
+  const rad = 30 + w.rng.next() * DROP_SCATTER;
+  c.state = 'ground';
+  c.owner = null;
+  c.wave = false;
+  c.capitalTimer = 0;
+  c.hp = copyMaxHp(c);
+  c.x = Math.min(MAP_SIZE - 40, Math.max(40, x + Math.cos(ang) * rad));
+  c.y = Math.min(MAP_SIZE - 40, Math.max(40, y + Math.sin(ang) * rad));
+}
+
 /** All owned letters scatter near the player as normal pickups, keeping XP/upgrade state. */
 export function dropLetters(w: World, p: Player): void {
-  for (const id of p.letters) {
-    const c = w.copies[id];
-    const ang = w.rng.next() * Math.PI * 2;
-    const rad = 30 + w.rng.next() * DROP_SCATTER;
-    c.state = 'ground';
-    c.owner = null;
-    c.wave = false;
-    c.capitalTimer = 0;
-    c.x = Math.min(MAP_SIZE - 40, Math.max(40, p.x + Math.cos(ang) * rad));
-    c.y = Math.min(MAP_SIZE - 40, Math.max(40, p.y + Math.sin(ang) * rad));
-  }
+  for (const id of p.letters) dropCopy(w, w.copies[id], p.x, p.y);
   p.letters = [];
   p.active = null;
 }

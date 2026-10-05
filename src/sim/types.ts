@@ -16,7 +16,7 @@ export interface Player {
   isBot: boolean;
   x: number;
   y: number;
-  hp: number;
+  hp: number; // HP (ink) of the active letter; each owned letter keeps its own pool in LetterCopy.hp
   maxHp: number; // 100, or x1.3 while a BOLD letter is active
   tempHp: number; // CAPITAL bonus HP, absorbed before hp
   alive: boolean;
@@ -52,6 +52,7 @@ export interface LetterCopy {
   wave: boolean; // counts toward the 8 map letters (false for death drops)
   capitalTimer: number;
   capitalCd: number;
+  hp: number; // own HP pool; for the owner's active letter the live value is Player.hp
 }
 
 export interface Mob {
@@ -110,6 +111,7 @@ export type SimEvent =
   | { t: 'hit'; target: 'mob' | 'player'; id: number; x: number; y: number; dmg: number; by: number | null }
   | { t: 'mobDeath'; kind: string; x: number; y: number; by: number | null }
   | { t: 'playerDeath'; id: number; x: number; y: number; by: number | null }
+  | { t: 'letterLost'; id: number; letter: string; x: number; y: number; by: number | null }
   | { t: 'pickup'; id: number; letter: string; x: number; y: number }
   | { t: 'switch'; id: number; letter: string }
   | { t: 'upgrade'; id: number; letter: string }

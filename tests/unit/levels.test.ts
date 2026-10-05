@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BOLD, BULLET, CAPITAL_TEMP_HP_FRAC, DT, LETTER_AREA_SPAWN_MUL, MAP_SIZE, MOB_KILL_HEAL_FRAC, MOB_TIERS, PLAYER_HP, XP, mobSpawnRate, mobTierWeights } from '../../src/sim/config';
+import { BOLD, BULLET, FOG_STAGES, CAPITAL_TEMP_HP_FRAC, DT, LETTER_AREA_SPAWN_MUL, MAP_SIZE, MOB_KILL_HEAL_FRAC, MOB_TIERS, PLAYER_HP, XP, mobSpawnRate, mobTierWeights } from '../../src/sim/config';
 import { activeCopy, creditXp, damagePlayer } from '../../src/sim/combat';
 import { makeMob, updateMobs } from '../../src/sim/mobs';
 import { NO_INPUT, type World } from '../../src/sim/types';
@@ -27,7 +27,7 @@ describe('letter levels: CAPITAL (1) and BOLD (2)', () => {
     expect(w.events.some((e) => e.t === 'bold')).toBe(true);
   });
 
-  it('BOLD raises max HP and current HP by 30% while that letter is active, no HP from switching', () => {
+  it('BOLD raises max HP and current HP by 30% while that letter is active; other letters keep their own pool', () => {
     const w = setup();
     const p = w.players[0];
     p.hp = 50;
@@ -37,7 +37,7 @@ describe('letter levels: CAPITAL (1) and BOLD (2)', () => {
     const other = w.copies[p.letters[1]].letter;
     step(w, { 0: { mx: 0, my: 0, switchTo: other, capital: false } });
     expect(p.maxHp).toBe(PLAYER_HP);
-    expect(p.hp).toBeCloseTo(50, 5);
+    expect(p.hp).toBe(PLAYER_HP); // the other letter was never hurt
   });
 
   it('BOLD bullets deal 30% more damage, in both forms', () => {
@@ -97,10 +97,19 @@ describe('CAPITAL temporary HP', () => {
 });
 
 describe('mobs', () => {
-  it('HP is 70% x 80% x 80% of the original values', () => {
+  it('HP is 70% x 80% x 80% of the original values, chunky another -30%', () => {
     expect(MOB_TIERS.slender.hp).toBeCloseTo(8 * 0.7 * 0.8 * 0.8);
     expect(MOB_TIERS.medium.hp).toBeCloseTo(24 * 0.7 * 0.8 * 0.8);
-    expect(MOB_TIERS.chunky.hp).toBeCloseTo(60 * 0.7 * 0.8 * 0.8);
+    expect(MOB_TIERS.chunky.hp).toBeCloseTo(60 * 0.7 * 0.8 * 0.8 * 0.7);
+  });
+
+  it('mob damage is half of the playtest-3 values', () => {
+    expect([MOB_TIERS.slender.dmg, MOB_TIERS.medium.dmg, MOB_TIERS.chunky.dmg]).toEqual([2, 3, 5]);
+  });
+
+  it('spawn rate grows 15% per minute', () => {
+    expect(mobSpawnRate(60) / mobSpawnRate(0)).toBeCloseTo(1.15);
+    expect(mobSpawnRate(300) / mobSpawnRate(240)).toBeCloseTo(1.15);
   });
 
   it('killing a mob heals 0.5% of max HP', () => {
@@ -188,5 +197,48 @@ describe('range-based damage (playtest 3)', () => {
     const total = shots.reduce((s, b) => s + b.dmg, 0);
     expect(total).toBeCloseTo(f.bullet.dmg * 2);
     expect(new Set(shots.map((b) => b.vx.toFixed(1))).size).toBe(BULLET.dotPellets);
+  });
+});
+
+describe('per-letter HP (playtest 4)', () => {
+  it('each letter keeps its own HP pool across switches', () => {
+    const w = setup();
+    const p = w.players[0];
+    const [a, b] = p.letters;
+    p.hp = 30;
+    step(w, { 0: { mx: 0, my: 0, switchTo: w.copies[b].letter, capital: false } });
+    expect(p.active).toBe(b);
+    expect(p.hp).toBe(PLAYER_HP);
+    expect(w.copies[a].hp).toBe(30);
+    p.switchCd = 0;
+    step(w, { 0: { mx: 0, my: 0, switchTo: w.copies[a].letter, capital: false } });
+    expect(p.hp).toBe(30);
+  });
+
+  it('a letter at 0 HP drops on the floor and the player respawns elsewhere with another letter', () => {
+    const w = setup();
+    const p = w.players[0];
+    const [a, b] = p.letters;
+    const x0 = p.x, y0 = p.y;
+    p.hp = 0;
+    step(w, {});
+    expect(p.alive).toBe(true);
+    expect(p.letters).toEqual([b]);
+    expect(p.active).toBe(b);
+    expect(p.hp).toBe(PLAYER_HP);
+    const lost = w.copies[a];
+    expect(lost.state).toBe('ground');
+    expect(Math.hypot(lost.x - x0, lost.y - y0)).toBeLessThan(200);
+    expect(lost.hp).toBe(PLAYER_HP); // refilled for whoever picks it up
+    expect(Math.hypot(p.x - x0, p.y - y0)).toBeGreaterThan(300);
+    expect(w.events.some((e) => e.t === 'letterLost' && e.id === 0)).toBe(true);
+    // Losing the last letter eliminates.
+    p.hp = 0;
+    step(w, {});
+    expect(p.alive).toBe(false);
+  });
+
+  it('fog deals 50% more damage than before', () => {
+    expect(FOG_STAGES.map((s) => s.dps)).toEqual([2, 3, 5, 8, 12, 20].map((d) => d * 1.5));
   });
 });

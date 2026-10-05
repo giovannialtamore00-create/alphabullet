@@ -85,17 +85,19 @@ export interface MobTier {
   dmg: number;
 }
 export const MOB_TIERS: Record<'slender' | 'medium' | 'chunky', MobTier> = {
-  slender: { hp: 3.584, speed: 150, radius: 12, dmg: 4 },
-  medium: { hp: 10.752, speed: 105, radius: 16, dmg: 6 },
-  chunky: { hp: 26.88, speed: 68, radius: 22, dmg: 10 },
+  slender: { hp: 3.584, speed: 150, radius: 12, dmg: 2 },
+  medium: { hp: 10.752, speed: 105, radius: 16, dmg: 3 },
+  chunky: { hp: 18.816, speed: 68, radius: 22, dmg: 5 },
 };
 export const MOB_CONTACT_COOLDOWN = 0.8;
 export const MOB_CAP_PER_PLAYER = 60;
 export const MOB_CAP_TOTAL = 300;
 export const MOB_SPAWN_DIST: [number, number] = [1050, 1300];
 export const MOB_DESPAWN_DIST = 2600;
-/** Spawns/sec per alive player at time t (seconds). */
-export const mobSpawnRate = (t: number) => Math.min(1.6, 0.75 + t / 600);
+/** Spawns/sec per alive player at time t (seconds): +15% per minute, compounding (playtest 4). */
+export const MOB_SPAWN_GROWTH_PER_MIN = 1.15;
+export const MOB_SPAWN_RATE_CAP = 3; // PLACEHOLDER: per-player cap, reached at ~11.5 min
+export const mobSpawnRate = (t: number) => Math.min(MOB_SPAWN_RATE_CAP, 0.75 * MOB_SPAWN_GROWTH_PER_MIN ** (t / 60));
 /** Weight of [slender, medium, chunky] at time t. */
 export const mobTierWeights = (t: number): [number, number, number] => [
   Math.max(2, 6 - t / 120) * 1.3, // +30% small mobs
@@ -112,12 +114,13 @@ export interface FogStage {
 /** Starts covering the whole map; ~11 minutes until the circle closes. */
 export const FOG_START_RADIUS = MAP_SIZE * 0.72;
 export const FOG_STAGES: FogStage[] = [
-  { wait: 120, shrink: 60, radius: 3200, dps: 2 },
-  { wait: 90, shrink: 50, radius: 1800, dps: 3 },
-  { wait: 75, shrink: 40, radius: 900, dps: 5 },
-  { wait: 60, shrink: 30, radius: 400, dps: 8 },
-  { wait: 45, shrink: 30, radius: 150, dps: 12 },
-  { wait: 30, shrink: 30, radius: 0, dps: 20 },
+  // dps x1.5 in playtest 4 (was 2, 3, 5, 8, 12, 20)
+  { wait: 120, shrink: 60, radius: 3200, dps: 3 },
+  { wait: 90, shrink: 50, radius: 1800, dps: 4.5 },
+  { wait: 75, shrink: 40, radius: 900, dps: 7.5 },
+  { wait: 60, shrink: 30, radius: 400, dps: 12 },
+  { wait: 45, shrink: 30, radius: 150, dps: 18 },
+  { wait: 30, shrink: 30, radius: 0, dps: 30 },
 ];
 
 export const SPATIAL_CELL = 128;

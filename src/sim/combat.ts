@@ -15,10 +15,25 @@ export function playerRadius(w: World, p: Player): number {
   return activeForm(w, p)?.radius ?? 18;
 }
 
+/** Max HP of one letter's own pool (x1.3 if it is BOLD). */
+export function copyMaxHp(c: LetterCopy): number {
+  return PLAYER_HP * (c.bold ? BOLD.hpMul : 1);
+}
+
 /**
- * Max HP follows the active letter (x1.3 if it is BOLD). HP scales proportionally on change,
- * so switching letters can never create or destroy HP.
+ * Make copy `id` the active letter. Each letter has its own HP pool: the old letter keeps
+ * its current HP, and Player.hp/maxHp now show the new letter's pool.
  */
+export function selectLetter(w: World, p: Player, id: number): void {
+  const old = activeCopy(w, p);
+  if (old && old.owner === p.id) old.hp = p.hp;
+  p.active = id;
+  const c = w.copies[id];
+  p.hp = c.hp;
+  p.maxHp = copyMaxHp(c);
+}
+
+/** Max HP follows the active letter (x1.3 if it is BOLD). HP scales proportionally on change. */
 export function refreshMaxHp(w: World, p: Player): void {
   const c = activeCopy(w, p);
   const max = PLAYER_HP * (c?.bold ? BOLD.hpMul : 1);
@@ -41,7 +56,9 @@ export function creditXp(w: World, attacker: number | null, copyId: number | nul
   if (c.upgraded && c.xp >= XP.boldThreshold) {
     c.bold = true;
     w.events.push({ t: 'bold', id: attacker, letter: c.letter });
-    refreshMaxHp(w, w.players[attacker]);
+    const p = w.players[attacker];
+    if (p.active === c.id) refreshMaxHp(w, p);
+    else c.hp *= BOLD.hpMul;
   }
 }
 

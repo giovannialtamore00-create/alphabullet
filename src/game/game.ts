@@ -207,6 +207,15 @@ export class Game {
           if (e.id === this.viewId) this.renderer.shake(10);
           break;
         }
+        case 'letterLost': {
+          const victim = w.players[e.id];
+          const now = victim.active !== null ? w.copies[victim.active].letter : '';
+          if (e.id === me) {
+            this.hud.toast(`Your ${e.letter} ran out of ink! Respawned as ${now}`, true);
+            this.renderer.shake(8);
+          } else if (e.by === me) this.hud.toast(`You broke ${victim.name}'s ${e.letter}`);
+          break;
+        }
         case 'letterWave':
           this.hud.toast('New letters appeared on the map');
           break;

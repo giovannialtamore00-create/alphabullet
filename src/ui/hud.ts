@@ -1,6 +1,6 @@
 /** In-game HUD as a DOM overlay (black ink on paper). */
 import { CAPITAL_COOLDOWN, CAPITAL_DURATION, FOG_STAGES, XP } from '../sim/config';
-import { activeCopy } from '../sim/combat';
+import { activeCopy, copyMaxHp } from '../sim/combat';
 import { getForm } from '../sim/glyphDerive';
 import type { LetterCopy, World } from '../sim/types';
 
@@ -25,6 +25,7 @@ interface Slot {
   box: HTMLDivElement;
   canvas: HTMLCanvasElement;
   xp: HTMLDivElement;
+  hp: HTMLDivElement;
   key: string;
 }
 
@@ -118,8 +119,9 @@ export class Hud {
       const box = el('div', 'slot', this.row);
       const canvas = el('canvas', 'slot-glyph', box);
       canvas.width = canvas.height = 64;
+      const hp = el('div', 'slot-hp', box);
       const xp = el('div', 'slot-xp', box);
-      this.slots.push({ box, canvas, xp, key: '' });
+      this.slots.push({ box, canvas, xp, hp, key: '' });
     }
     this.slots.forEach((s, i) => {
       const c = copies[i];
@@ -139,6 +141,9 @@ export class Hud {
         s.box.classList.toggle('upgraded', c.upgraded);
       }
       s.xp.style.width = `${levelProgress(c) * 100}%`;
+      // Each letter has its own HP (ink); the active one is live on the player.
+      const hp = active ? p.hp / p.maxHp : c.hp / copyMaxHp(c);
+      s.hp.style.width = `${Math.max(0, Math.min(1, hp)) * 100}%`;
     });
     const c = activeCopy(w, p);
     if (!c) {

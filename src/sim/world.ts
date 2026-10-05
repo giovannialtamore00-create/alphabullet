@@ -15,10 +15,10 @@ import {
   SWITCH_COOLDOWN,
   XP,
 } from './config';
-import { activeCopy, activeForm, creditXp, damageMob, damagePlayer, playerRadius, refreshMaxHp } from './combat';
+import { activeCopy, activeForm, creditXp, damageMob, damagePlayer, playerRadius, selectLetter } from './combat';
 import { createFog, updateFog } from './fog';
 
-import { createCopies, drawFromPool, dropLetters, giveCopy, spawnWave, updatePickups, updateWave } from './letters';
+import { createCopies, drawFromPool, dropCopy, dropLetters, findSpot, giveCopy, spawnWave, updatePickups, updateWave } from './letters';
 import { makeMob, updateMobs } from './mobs';
 import { Rng } from './rng';
 import { SpatialHash } from './spatialHash';
@@ -124,8 +124,7 @@ function applyInput(w: World, p: Player, inp: PlayerInput): void {
     const target = p.letters.find((id) => w.copies[id].letter === inp.switchTo);
     if (target !== undefined && target !== p.active) {
       endCapital(w, p);
-      p.active = target;
-      refreshMaxHp(w, p);
+      selectLetter(w, p, target);
       p.switchCd = SWITCH_COOLDOWN;
       p.morph = 0;
       const rate = activeForm(w, p)!.bullet.rate;
@@ -233,7 +232,38 @@ function updateBullets(w: World): void {
   w.bullets.length = j;
 }
 
+/** Letter-loss respawn keeps this distance from other players when it can. */
+const RESPAWN_AVOID_PLAYERS = 1200; // PLACEHOLDER
+
+/**
+ * The active letter ran out of HP (ink) but the player owns others: that letter drops on the floor,
+ * and the player respawns somewhere else with their healthiest remaining letter.
+ */
+function loseActiveLetter(w: World, p: Player): void {
+  const c = activeCopy(w, p)!;
+  endCapital(w, p);
+  const killer = p.lastDamager !== null ? p.lastDamager : null;
+  w.events.push({ t: 'letterLost', id: p.id, letter: c.letter, x: p.x, y: p.y, by: killer });
+  p.letters = p.letters.filter((id) => id !== c.id);
+  p.active = null;
+  dropCopy(w, c, p.x, p.y);
+  const next = p.letters.reduce((a, b) => (w.copies[b].hp > w.copies[a].hp ? b : a)); // healthiest letter
+  selectLetter(w, p, next);
+  const spot = findSpot(
+    w,
+    w.players.filter((q) => q.alive && q.id !== p.id).map((q) => ({ x: q.x, y: q.y, d: RESPAWN_AVOID_PLAYERS })),
+  );
+  p.x = spot.x;
+  p.y = spot.y;
+  p.tempHp = 0;
+  p.shieldBudget = 0;
+  p.morph = 0;
+  p.lastDamager = null;
+}
+
 function resolveDeaths(w: World): void {
+  for (const p of w.players)
+    if (p.alive && p.hp <= 0 && p.letters.some((id) => id !== p.active && w.copies[id].hp > 0)) loseActiveLetter(w, p);
   const dying = w.players.filter((p) => p.alive && p.hp <= 0);
   if (!dying.length) return;
   // Most-dead first, so the least-dead of a simultaneous group places best.
@@ -289,6 +319,9 @@ export function removePlayer(w: World, id: number): void {
   if (!p || !p.alive) return;
   p.hp = 0;
   p.lastDamager = null;
+  const keep = p.active ?? p.letters[0];
+  for (const id of p.letters) if (id !== keep) dropCopy(w, w.copies[id], p.x, p.y);
+  p.letters = keep === undefined ? [] : [keep]; // a single letter left means elimination, not a respawn
   resolveDeaths(w);
   checkWin(w);
 }
