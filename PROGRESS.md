@@ -1,12 +1,14 @@
 # Progress
 
 ## Current
-- Milestone: 8 (parking-lot phase). Phase: parking lot.
-- M7 done: src/net/ (protocol.ts snapshots, session.ts HostSession/ClientSession, transport.ts PeerJS + memory pair), src/ui/online.ts, Game client/host modes, main.ts online flows. 50 unit tests; e2e: smoke (2) + online (real PeerJS) pass.
+- All milestones done (M1-M8). Phase: finished; waiting for user playtest + GitHub push.
+- M8: pacing pass merged (bot-only matches 2-4 min -> 6-7.5 min). One open balance item in BLOCKERS.md.
+- Verified at the end: 51 unit tests pass, 3 Playwright tests pass (smoke, full flow, real 2-browser PeerJS match), npm run build passes.
 
 ## Next steps
-1. BLOCKERS.md is empty: no parked problems. Use remaining time for small, safe improvements only on branches.
-2. Final summary to user + final checkpoint.
+1. User: push to GitHub and enable Pages (README "Deploy to GitHub Pages").
+2. User: playtest solo + online; report pacing/balance feel (BLOCKERS.md #1).
+3. If resumed: tune config.ts knobs from playtest feedback, re-run tests, commit.
 
 ## Milestones
 1. Core logic + tests  [done]
@@ -16,7 +18,7 @@
 5. Screens + polish  [done]
 6. Deploy + README (solo)  [done, push pending user]
 7. Multiplayer (PeerJS)  [done]
-8. Parking-lot phase
+8. Parking-lot phase  [done]
 
 ## Context for a fresh session
 - Spec: docs/design.md. Workflow: docs/workflow.md.
