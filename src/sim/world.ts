@@ -8,6 +8,7 @@ import {
   DT,
   MAP_SIZE,
   PLAYER_HP,
+  PLAYER_LIVES,
   PLAYER_SPEED,
   PVP_DAMAGE_MUL,
   SPATIAL_CELL,
@@ -64,6 +65,7 @@ export function createWorld(seed: number, setups: PlayerSetup[], opts: { mobs?: 
       maxHp: PLAYER_HP,
       tempHp: 0,
       alive: true,
+      lives: PLAYER_LIVES,
       letters: [],
       active: null,
       switchCd: 0,
@@ -236,8 +238,9 @@ function updateBullets(w: World): void {
 const RESPAWN_AVOID_PLAYERS = 1200; // PLACEHOLDER
 
 /**
- * The active letter ran out of HP (ink) but the player owns others: that letter drops on the floor,
- * and the player respawns somewhere else with their healthiest remaining letter.
+ * The active letter ran out of HP (ink) and the player has lives left: one life is spent, that letter drops
+ * on the floor, and the player respawns somewhere else with their healthiest remaining letter
+ * (or a fresh letter from the pool if it was their only one).
  */
 function loseActiveLetter(w: World, p: Player): void {
   const c = activeCopy(w, p)!;
@@ -247,6 +250,8 @@ function loseActiveLetter(w: World, p: Player): void {
   p.letters = p.letters.filter((id) => id !== c.id);
   p.active = null;
   dropCopy(w, c, p.x, p.y);
+  p.lives--;
+  if (!p.letters.length) giveCopy(w, p, drawFromPool(w, new Set([c.letter])) ?? drawFromPool(w) ?? c); // last resort: same letter
   const next = p.letters.reduce((a, b) => (w.copies[b].hp > w.copies[a].hp ? b : a)); // healthiest letter
   selectLetter(w, p, next);
   const spot = findSpot(
@@ -263,7 +268,7 @@ function loseActiveLetter(w: World, p: Player): void {
 
 function resolveDeaths(w: World): void {
   for (const p of w.players)
-    if (p.alive && p.hp <= 0 && p.letters.some((id) => id !== p.active && w.copies[id].hp > 0)) loseActiveLetter(w, p);
+    if (p.alive && p.hp <= 0 && p.lives > 1) loseActiveLetter(w, p);
   const dying = w.players.filter((p) => p.alive && p.hp <= 0);
   if (!dying.length) return;
   // Most-dead first, so the least-dead of a simultaneous group places best.
@@ -271,6 +276,7 @@ function resolveDeaths(w: World): void {
   const aliveAfter = w.players.filter((p) => p.alive && p.hp > 0).length;
   dying.forEach((p, i) => {
     p.alive = false;
+    p.lives = 0;
     p.tempHp = 0;
     p.deathTime = w.time;
     p.placement = aliveAfter + dying.length - i;
@@ -318,10 +324,11 @@ export function removePlayer(w: World, id: number): void {
   const p = w.players[id];
   if (!p || !p.alive) return;
   p.hp = 0;
+  p.lives = 0; // disconnect always eliminates
   p.lastDamager = null;
   const keep = p.active ?? p.letters[0];
   for (const id of p.letters) if (id !== keep) dropCopy(w, w.copies[id], p.x, p.y);
-  p.letters = keep === undefined ? [] : [keep]; // a single letter left means elimination, not a respawn
+  p.letters = keep === undefined ? [] : [keep];
   resolveDeaths(w);
   checkWin(w);
 }

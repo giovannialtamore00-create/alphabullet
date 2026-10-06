@@ -33,7 +33,7 @@ Desktop web browser (keyboard), with no install for players. Stack: **Vite + Typ
 3. Players move with the **arrow keys** (8 directions). Your active letter fires automatically and continuously from all its emitters. There is no aiming and no rotation; the letter is always upright.
 4. Mobs (keyboard symbols) continuously spawn off-screen around players and swarm toward the nearest player. They only attack by touching (melee damage) and never shoot.
 5. Players damage each other with bullets. Mobs and players both block and absorb bullets.
-6. **Win condition:** last player standing wins. Death is final: there are no respawns (for now). A dead player becomes a spectator who can cycle between surviving players, and sees the end screen when the match ends.
+6. **Win condition:** last player standing wins. Each player has **3 lives**. Losing a life (active letter at 0 HP) drops that letter and respawns the player elsewhere with another owned letter (or a fresh pool letter if it was the only one). The 3rd death eliminates. An eliminated player becomes a spectator who can cycle between surviving players, and sees the end screen when the match ends.
 7. **Closing fog:** as time goes by, a fog closes in on the arena and shrinks the playable area, forcing players to meet and fight. Standing inside the fog deals damage over time. The fog shrinks in stages, with a pause between stages, toward a final small circle at a random spot. It is drawn in the ink-on-paper style, e.g. a smudged grey wash over the paper, and shown on the minimap along with the next safe zone. Balance timings sensibly so a full match lasts about 10–15 minutes. Letters never spawn inside the fog.
 
 **Letters (your arsenal)**

@@ -94,7 +94,7 @@ export class Hud {
     this.textT -= dt;
     if (this.textT > 0) return;
     this.textT = 0.1;
-    this.hpText.textContent = `${Math.max(0, Math.ceil(shown.hp))}${shown.tempHp > 0 ? ` +${Math.ceil(shown.tempHp)}` : ""}${shown.maxHp > 100 ? " BOLD" : ""}`;
+    this.hpText.textContent = `${Math.max(0, Math.ceil(shown.hp))}${shown.tempHp > 0 ? ` +${Math.ceil(shown.tempHp)}` : ""}${shown.maxHp > 100 ? " BOLD" : ""}  ${"\u2665".repeat(shown.lives)}`;
     this.timer.textContent = fmt(w.time);
     this.alive.textContent = `${w.players.filter((p) => p.alive).length} / ${w.players.length} letters standing`;
     const f = w.fog;

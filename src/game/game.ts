@@ -211,7 +211,7 @@ export class Game {
           const victim = w.players[e.id];
           const now = victim.active !== null ? w.copies[victim.active].letter : '';
           if (e.id === me) {
-            this.hud.toast(`Your ${e.letter} ran out of ink! Respawned as ${now}`, true);
+            this.hud.toast(`Your ${e.letter} ran out of ink! Respawned as ${now} (${victim.lives} ${victim.lives === 1 ? 'life' : 'lives'} left)`, true);
             this.renderer.shake(8);
           } else if (e.by === me) this.hud.toast(`You broke ${victim.name}'s ${e.letter}`);
           break;

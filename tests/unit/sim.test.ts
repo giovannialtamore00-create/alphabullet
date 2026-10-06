@@ -344,6 +344,7 @@ describe('death and drops', () => {
     debugGiveLetter(w, 0, 'Z');
     const p = w.players[0];
     for (const id of p.letters) w.copies[id].hp = 0; // every letter is out of ink
+    p.lives = 1;
     p.hp = 0;
     p.lastDamager = 1;
     step(w, {});
@@ -413,6 +414,7 @@ describe('closing fog', () => {
 /** Leave the player with only their active letter, so running out of HP eliminates them. */
 function lastLetter(p: Player): Player {
   p.letters = [p.active!];
+  p.lives = 1; // last life: the next death eliminates
   return p;
 }
 

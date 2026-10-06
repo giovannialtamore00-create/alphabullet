@@ -46,17 +46,17 @@ test('full flow: menu -> match -> pause -> end screen -> play again -> menu', as
   expect(await tick(page)).toBeGreaterThan(t0);
   // Force the match to end: erase all bots.
   await page.evaluate(() => {
-    for (const p of (window as any).__game.world.players) if (p.isBot) { p.letters = [p.active]; p.hp = -1; }
+    for (const p of (window as any).__game.world.players) if (p.isBot) { p.letters = [p.active]; p.lives = 1; p.hp = -1; }
   });
   await expect(page.getByText('You are the last letter standing!')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText('#1 of 8')).toBeVisible();
   await page.getByRole('button', { name: 'Play again' }).click();
   await page.waitForFunction(() => (window as any).__game?.world?.tick > 10 && !(window as any).__game.world.over, null, { timeout: 30_000 });
   // Local player dies first: spectating, then the match ends when one bot remains.
-  await page.evaluate(() => { const p = (window as any).__game.world.players[0]; p.letters = [p.active]; p.hp = -1; });
+  await page.evaluate(() => { const p = (window as any).__game.world.players[0]; p.letters = [p.active]; p.lives = 1; p.hp = -1; });
   await expect(page.getByText(/You placed #8/)).toBeVisible({ timeout: 10_000 });
   await page.evaluate(() => {
-    for (const p of (window as any).__game.world.players.slice(2)) { p.letters = [p.active]; p.hp = -1; }
+    for (const p of (window as any).__game.world.players.slice(2)) { p.letters = [p.active]; p.lives = 1; p.hp = -1; }
   });
   await expect(page.getByRole('button', { name: 'Back to menu' })).toBeVisible({ timeout: 20_000 });
   await page.screenshot({ path: 'test-results/end.png' });

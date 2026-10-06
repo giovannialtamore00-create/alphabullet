@@ -20,6 +20,7 @@ export interface Player {
   maxHp: number; // 100, or x1.3 while a BOLD letter is active
   tempHp: number; // CAPITAL bonus HP, absorbed before hp
   alive: boolean;
+  lives: number; // remaining lives; reaching 0 eliminates
   letters: number[]; // copy ids
   active: number | null; // copy id
   switchCd: number;

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { BOLD, BULLET, FOG_STAGES, CAPITAL_TEMP_HP_FRAC, DT, LETTER_AREA_SPAWN_MUL, MAP_SIZE, MOB_KILL_HEAL_FRAC, MOB_TIERS, PLAYER_HP, XP, mobSpawnRate, mobTierWeights } from '../../src/sim/config';
+import { BOLD, BULLET, FOG_STAGES, CAPITAL_TEMP_HP_FRAC, DT, LETTER_AREA_SPAWN_MUL, MAP_SIZE, MOB_KILL_HEAL_FRAC, MOB_TIERS, PLAYER_HP, PLAYER_LIVES, XP, mobSpawnRate, mobTierWeights } from '../../src/sim/config';
 import { activeCopy, creditXp, damagePlayer } from '../../src/sim/combat';
 import { makeMob, updateMobs } from '../../src/sim/mobs';
 import { NO_INPUT, type World } from '../../src/sim/types';
-import { debugBoldActive, debugUpgradeActive, step } from '../../src/sim/world';
+import { debugBoldActive, debugGiveLetter, debugUpgradeActive, step } from '../../src/sim/world';
 import { getForm } from '../../src/sim/glyphDerive';
 import { isolate, testWorld } from './helpers';
 
@@ -232,10 +232,27 @@ describe('per-letter HP (playtest 4)', () => {
     expect(lost.hp).toBe(PLAYER_HP); // refilled for whoever picks it up
     expect(Math.hypot(p.x - x0, p.y - y0)).toBeGreaterThan(300);
     expect(w.events.some((e) => e.t === 'letterLost' && e.id === 0)).toBe(true);
-    // Losing the last letter eliminates.
+    expect(p.lives).toBe(PLAYER_LIVES - 1);
+  });
+
+  it('3 lives: losing your only letter respawns you with a fresh one; the 3rd death eliminates', () => {
+    const w = setup();
+    const p = w.players[0];
+    const [a, b] = p.letters;
     p.hp = 0;
-    step(w, {});
+    step(w, {}); // death 1: lose a, keep b
+    p.hp = 0;
+    step(w, {}); // death 2: lose b, the only letter -> fresh letter from the pool
+    expect(p.alive).toBe(true);
+    expect(p.lives).toBe(1);
+    expect(p.letters.length).toBe(1);
+    expect([a, b]).not.toContain(p.active);
+    expect(p.hp).toBe(PLAYER_HP);
+    debugGiveLetter(w, 0, w.copies[a].letter === 'Q' ? 'Z' : 'Q');
+    p.hp = 0;
+    step(w, {}); // death 3: eliminated even with letters left
     expect(p.alive).toBe(false);
+    expect(p.lives).toBe(0);
   });
 
   it('fog deals 50% more damage than before', () => {
