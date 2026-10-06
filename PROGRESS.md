@@ -4,6 +4,9 @@
 - All milestones done (M1-M8). Phase: finished; waiting for user playtest + GitHub push.
 - M8: pacing pass merged (bot-only matches 2-4 min -> 6-7.5 min). One open balance item in BLOCKERS.md.
 - Verified at the end: 51 unit tests pass, 3 Playwright tests pass (smoke, full flow, real 2-browser PeerJS match), npm run build passes.
+- Playtest rounds 1-4 applied (details in DECISIONS.md "[Playtest N]"). Latest: per-letter HP with respawn on letter loss, halved mob damage, +15%/min compounding spawn ramp, fog x1.5. Also fixed: room-code field blocked typing. Now 71 unit tests + 3 e2e pass.
+- Playtest 4 open questions for the user: spawn protection after respawn? kill credit/XP for breaking a letter? placeholders (spawn cap 3/s, respawn 1200 px from players) OK?
+- Testing notes: dev server on port 5174; Cloudflare tunnel via `cloudflared tunnel --url http://localhost:5174` (vite allows *.trycloudflare.com). Port 4173 may be taken by another local app; then run e2e with a copy of playwright.config.ts using another port.
 
 ## Next steps
 1. User: push to GitHub and enable Pages (README "Deploy to GitHub Pages").
