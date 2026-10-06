@@ -5,8 +5,8 @@
 - M8: pacing pass merged (bot-only matches 2-4 min -> 6-7.5 min). One open balance item in BLOCKERS.md.
 - Verified at the end: 51 unit tests pass, 3 Playwright tests pass (smoke, full flow, real 2-browser PeerJS match), npm run build passes.
 - Playtest rounds 1-4 applied (details in DECISIONS.md "[Playtest N]"). Latest: per-letter HP with respawn on letter loss, halved mob damage, +15%/min compounding spawn ramp, fog x1.5. Also fixed: room-code field blocked typing. Now 71 unit tests + 3 e2e pass.
-- Playtest 4 open questions for the user: spawn protection after respawn? kill credit/XP for breaking a letter? placeholders (spawn cap 3/s, respawn 1200 px from players) OK?
-- Patch "3 lives" applied: 3 lives per player, each death drops the active letter and respawns; 3rd death eliminates. Only-letter loss respawns with a fresh pool letter (assumption). 72 unit + 3 e2e pass.
+- Playtest 4 questions answered: spawn protection 2 s (PLACEHOLDER), letter break = kill + 60 XP (PLACEHOLDER). Still to confirm: spawn cap 3/s, respawn 1200 px from players.
+- Patch "3 lives" applied: 3 lives per player, each death drops the active letter and respawns; 3rd death eliminates. Only-letter loss respawns with a fresh pool letter (assumption). 73 unit + 3 e2e pass.
 - Testing notes: dev server on port 5174; Cloudflare tunnel via `cloudflared tunnel --url http://localhost:5174` (vite allows *.trycloudflare.com). Port 4173 may be taken by another local app; then run e2e with a copy of playwright.config.ts using another port.
 
 ## Next steps

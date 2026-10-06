@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BOLD, BULLET, FOG_STAGES, CAPITAL_TEMP_HP_FRAC, DT, LETTER_AREA_SPAWN_MUL, MAP_SIZE, MOB_KILL_HEAL_FRAC, MOB_TIERS, PLAYER_HP, PLAYER_LIVES, XP, mobSpawnRate, mobTierWeights } from '../../src/sim/config';
+import { BOLD, BULLET, FOG_STAGES, CAPITAL_TEMP_HP_FRAC, DT, LETTER_AREA_SPAWN_MUL, MAP_SIZE, MOB_KILL_HEAL_FRAC, MOB_TIERS, PLAYER_HP, PLAYER_LIVES, SPAWN_PROTECTION, XP, mobSpawnRate, mobTierWeights } from '../../src/sim/config';
 import { activeCopy, creditXp, damagePlayer } from '../../src/sim/combat';
 import { makeMob, updateMobs } from '../../src/sim/mobs';
 import { NO_INPUT, type World } from '../../src/sim/types';
@@ -253,6 +253,24 @@ describe('per-letter HP (playtest 4)', () => {
     step(w, {}); // death 3: eliminated even with letters left
     expect(p.alive).toBe(false);
     expect(p.lives).toBe(0);
+  });
+
+  it('breaking a letter counts as a kill with XP; the victim is briefly invulnerable', () => {
+    const w = setup();
+    const p = w.players[0];
+    const killer = w.players[1];
+    const xp0 = activeCopy(w, killer)!.xp;
+    p.hp = 0;
+    p.lastDamager = 1;
+    step(w, {});
+    expect(killer.kills).toBe(1);
+    expect(activeCopy(w, killer)!.xp).toBe(xp0 + XP.letterBreak);
+    expect(p.spawnProt).toBeGreaterThan(0);
+    expect(damagePlayer(w, p, 50, p.x + 10, p.y, 1)).toBe(0);
+    expect(p.hp).toBe(PLAYER_HP);
+    for (let i = 0; i < Math.ceil(SPAWN_PROTECTION / DT) + 1; i++) step(w, {});
+    expect(p.spawnProt).toBe(0);
+    expect(damagePlayer(w, p, 50, p.x + 10, p.y, 1)).toBeGreaterThan(0);
   });
 
   it('fog deals 50% more damage than before', () => {

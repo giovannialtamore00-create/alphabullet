@@ -21,6 +21,7 @@ export interface Player {
   tempHp: number; // CAPITAL bonus HP, absorbed before hp
   alive: boolean;
   lives: number; // remaining lives; reaching 0 eliminates
+  spawnProt: number; // seconds of invulnerability left after a respawn
   letters: number[]; // copy ids
   active: number | null; // copy id
   switchCd: number;

@@ -75,7 +75,7 @@ export function damagePlayer(
   attacker: number | null,
   blockable = true,
 ): number {
-  if (!p.alive || p.god || amount <= 0) return 0;
+  if (!p.alive || p.god || p.spawnProt > 0 || amount <= 0) return 0;
   if (blockable) {
     const form = activeForm(w, p);
     if (form && form.shieldCap > 0 && p.shieldBudget > 0) {

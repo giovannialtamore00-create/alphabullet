@@ -9,6 +9,7 @@ import {
   MAP_SIZE,
   PLAYER_HP,
   PLAYER_LIVES,
+  SPAWN_PROTECTION,
   PLAYER_SPEED,
   PVP_DAMAGE_MUL,
   SPATIAL_CELL,
@@ -66,6 +67,7 @@ export function createWorld(seed: number, setups: PlayerSetup[], opts: { mobs?: 
       tempHp: 0,
       alive: true,
       lives: PLAYER_LIVES,
+      spawnProt: 0,
       letters: [],
       active: null,
       switchCd: 0,
@@ -247,6 +249,11 @@ function loseActiveLetter(w: World, p: Player): void {
   endCapital(w, p);
   const killer = p.lastDamager !== null ? p.lastDamager : null;
   w.events.push({ t: 'letterLost', id: p.id, letter: c.letter, x: p.x, y: p.y, by: killer });
+  if (killer !== null && killer !== p.id) {
+    // Breaking a letter counts as a kill and gives XP, even though the victim respawns.
+    w.players[killer].kills++;
+    creditXp(w, killer, w.players[killer].active, XP.letterBreak);
+  }
   p.letters = p.letters.filter((id) => id !== c.id);
   p.active = null;
   dropCopy(w, c, p.x, p.y);
@@ -264,6 +271,7 @@ function loseActiveLetter(w: World, p: Player): void {
   p.shieldBudget = 0;
   p.morph = 0;
   p.lastDamager = null;
+  p.spawnProt = SPAWN_PROTECTION;
 }
 
 function resolveDeaths(w: World): void {
@@ -307,7 +315,11 @@ export function step(w: World, inputs: Record<number, PlayerInput>): void {
   if (w.over) return;
   w.tick++;
   w.time = w.tick * DT;
-  for (const p of w.players) if (p.alive) applyInput(w, p, inputs[p.id] ?? NO_INPUT);
+  for (const p of w.players) {
+    if (!p.alive) continue;
+    p.spawnProt = Math.max(0, p.spawnProt - DT);
+    applyInput(w, p, inputs[p.id] ?? NO_INPUT);
+  }
   updateCopies(w);
   fire(w);
   updateBullets(w);

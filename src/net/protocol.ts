@@ -8,7 +8,7 @@ import { MOB_KEYS, MOBS } from '../sim/glyphs';
 import type { Bullet, CopyState, Mob, SimEvent, World } from '../sim/types';
 import type { PlayerSetup } from '../sim/world';
 
-export const NET_VERSION = 3;
+export const NET_VERSION = 4;
 export const SNAPSHOT_RANGE = 1400; // px around the client's viewed player
 export const EVENT_RANGE = 1600;
 
@@ -109,6 +109,7 @@ export function encodeSnapshot(w: World, cv: ClientView, events: SimEvent[]): Sn
       r1(p.maxHp),
       r1(p.tempHp),
       p.lives,
+      r1(p.spawnProt),
     ]),
     pl: w.players.map((p) => p.letters),
     c: w.copies.map((c) => [STATES.indexOf(c.state), c.owner ?? -1, r0(c.x), r0(c.y), r0(c.xp), c.upgraded ? 1 : 0, r1(c.capitalTimer), r1(c.capitalCd), c.wave ? 1 : 0, c.bold ? 1 : 0, r1(c.hp)]),
@@ -148,6 +149,7 @@ export function applySnapshot(w: World, s: Snapshot, opts: { keepLocal?: number 
     p.maxHp = a[13];
     p.tempHp = a[14];
     p.lives = a[15];
+    p.spawnProt = a[16];
     p.letters = s.pl[i] ?? [];
   });
   s.c.forEach((a, i) => {

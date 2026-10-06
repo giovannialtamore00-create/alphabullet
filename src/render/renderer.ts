@@ -326,6 +326,7 @@ export class GameRenderer {
       if (!p.alive) continue;
       const pos = this.playerPos(p, a);
       v.root.position.set(pos.x, pos.y);
+      v.root.alpha = p.spawnProt > 0 && Math.floor(w.time * 8) % 2 ? 0.35 : 1; // blink while spawn-protected
       const c = activeCopy(w, p);
       const form = activeForm(w, p);
       if (!c || !form) continue;

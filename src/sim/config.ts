@@ -52,6 +52,8 @@ export const PVP_DAMAGE_MUL = 0.5;
 export const COPIES_PER_LETTER = 2;
 export const GROUND_LETTERS = 8;
 export const PLAYER_LIVES = 3; // deaths allowed; each one costs the active letter, the last eliminates
+/** Seconds of invulnerability after a letter-loss respawn. */
+export const SPAWN_PROTECTION = 2; // PLACEHOLDER
 export const RESPAWN_THRESHOLD = 4; // wave refills once this many (or fewer) remain
 export const RESPAWN_DELAY = 120;
 export const RESPAWN_MIN_DIST_FROM_OLD = 700;
@@ -63,6 +65,7 @@ export const XP = {
   perDamage: 1,
   mobKill: 6,
   playerKill: 120,
+  letterBreak: 60, // breaking a letter (the victim loses a life but respawns). PLACEHOLDER
 };
 
 export const CAPITAL_DURATION = 20;
