@@ -130,12 +130,15 @@ export class GameRenderer {
     return { x: p.x + (x - p.x) * a, y: p.y + (y - p.y) * a };
   }
 
-  /** Online client: our predicted player and client-simulated bullets are drawn without interpolation. */
+  /** Online client: our predicted player glides from its last tick position with its own blend
+   *  (local clock); client-simulated bullets are drawn without interpolation. */
   noLerpId = -1;
+  localPrev = new Map<number, { x: number; y: number }>();
+  localAlpha = 1;
   bulletLerp = true;
 
   playerPos(p: Player, a: number) {
-    if (p.id === this.noLerpId) return { x: p.x, y: p.y };
+    if (p.id === this.noLerpId) return this.lerp(this.localPrev, p.id, p.x, p.y, this.localAlpha);
     return this.lerp(this.prevP, p.id, p.x, p.y, a);
   }
 

@@ -8,6 +8,7 @@ import { GameRenderer } from '../render/renderer';
 import { Hud } from '../ui/hud';
 import { advanceBullets, applySnapshot, type Snapshot } from '../net/protocol';
 import type { ClientSession, HostSession } from '../net/session';
+import { SnapshotBuffer } from '../net/interp';
 
 export interface MatchSetup {
   seed: number;
@@ -46,7 +47,7 @@ export class Game {
   fps = 0;
   /** Online roles: host runs the sim and sends snapshots; client only mirrors. */
   net: { host?: HostSession; client?: ClientSession } = {};
-  private lastSnapAt = 0;
+  private snapBuf = new SnapshotBuffer<Snapshot>();
 
   constructor(
     private parent: HTMLElement,
@@ -96,8 +97,14 @@ export class Game {
       }
       if (steps === 4) this.acc = 0; // fell behind: drop time rather than spiral
     }
-    if (this.net.client) advanceBullets(this.world, dt);
-    const alpha = this.net.client ? Math.min(1, (now - this.lastSnapAt) / 50) : this.paused ? 1 : this.acc / DT;
+    let alpha = this.paused ? 1 : this.acc / DT;
+    this.renderer.localAlpha = alpha;
+    if (this.net.client) {
+      const due = this.snapBuf.update(now);
+      for (const s of due.apply) this.applyNetSnapshot(s);
+      alpha = due.alpha;
+      advanceBullets(this.world, dt);
+    }
     this.renderer.render(this.world, alpha, dt, {
       localId: this.localId,
       viewId: this.viewId,
@@ -132,6 +139,7 @@ export class Game {
     this.spectateControls(local);
     const me = this.world.players[this.localId];
     client.sendInput(me.alive ? local : { mx: 0, my: 0, switchTo: null, capital: false }, this.viewId);
+    this.renderer.localPrev.set(me.id, { x: me.x, y: me.y });
     this.applyPrediction(client);
   }
 
@@ -151,7 +159,6 @@ export class Game {
     applySnapshot(this.world, snap, { keepLocal: this.localId });
     client.reconcile(snap, this.localId);
     this.applyPrediction(client);
-    this.lastSnapAt = performance.now();
     if (snap.e.length) for (const l of this.listeners) l(snap.e, this.world);
   }
 
@@ -160,7 +167,7 @@ export class Game {
     this.net.client = client;
     this.renderer.noLerpId = this.localId;
     this.renderer.bulletLerp = false;
-    client.onSnapshot = (s) => this.applyNetSnapshot(s);
+    client.onSnapshot = (s) => this.snapBuf.push(s, performance.now());
   }
 
   private spectateControls(inp: PlayerInput): void {

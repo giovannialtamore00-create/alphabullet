@@ -15,10 +15,11 @@ Stack: Vite + TypeScript + PixiJS, Vitest, Playwright, PeerJS. Static site deplo
 - Instead of "stop after 2 failed fixes": after ~3 different approaches, park the problem in BLOCKERS.md and move on.
 - Still applies: cap every sim/game run (max 500 ticks or 10 s), test mechanics headless first, small reads/outputs.
 - CHECKPOINT = update PROGRESS.md + `git commit`. Commit messages: `M<n>: <title>` at milestone end, `M<n> wip: <what>` mid-milestone.
+- Patch/task loop (now that the MVP is done, this replaces the autonomous rule above): finish ONE task, wait for my approval and playtest, then `git commit` + save all info in PROGRESS.md, then ask me to /clear before starting the next patch or task.
 - Core sim (`src/sim/`) has no DOM/Pixi imports. Glyph behavior comes from data in the glyph module, never hand-coded per letter.
 
 ## Commands (fill in as they are created)
 - Dev: `npm run dev` · Build: `npm run build` · Unit tests: `npm test` · Smoke: `npm run test:e2e`
 
 ## Status
-All milestones done. Waiting for playtest + GitHub push. See PROGRESS.md and BLOCKERS.md.
+All milestones done. Patches: online guest smoothness (done), word powers (needs playtest + typing-vs-switch decision). Next steps in PROGRESS.md; see also BLOCKERS.md.
