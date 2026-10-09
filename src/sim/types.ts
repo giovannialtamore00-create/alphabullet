@@ -8,6 +8,7 @@ export interface PlayerInput {
   switchTo: string | null; // capital letter key, e.g. 'A'
   capital: boolean; // Shift pressed this tick
   word?: string | null; // word power typed this tick, e.g. 'DASH'
+  wordBack?: string | null; // letter held before typing the word; switched back to after it
 }
 export const NO_INPUT: PlayerInput = { mx: 0, my: 0, switchTo: null, capital: false };
 

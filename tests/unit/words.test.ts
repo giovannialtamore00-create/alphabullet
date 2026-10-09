@@ -103,4 +103,25 @@ describe('word powers', () => {
     expect(kb.poll().word).toBe(null);
     vi.unstubAllGlobals();
   });
+
+  it('keyboard remembers the letter held before the word started', async () => {
+    vi.stubGlobal('window', { addEventListener: () => {}, removeEventListener: () => {} });
+    const { Keyboard } = await import('../../src/input/keyboard');
+    const kb = new Keyboard();
+    // Held Z, then typed D-A-S-H (each key switches the held letter).
+    ['Z', 'D', 'A', 'S'].forEach((held, i) => kb.typeLetter('DASH'[i], 10 + i * 0.2, held));
+    expect(kb.poll()).toMatchObject({ word: 'DASH', wordBack: 'Z' });
+    vi.unstubAllGlobals();
+  });
+
+  it('after a word the player switches back to the letter held before it, even on switch cooldown', () => {
+    const w = setup('DASH', 'Z');
+    const p = w.players[0];
+    step(w, { 0: { ...NO_INPUT, switchTo: 'Z' } });
+    for (let i = 0; i < 20; i++) step(w, { 0: NO_INPUT });
+    // Same tick: switching to H starts the switch cooldown, the return to Z must still happen.
+    step(w, { 0: { ...NO_INPUT, switchTo: 'H', word: 'DASH', wordBack: 'Z' } });
+    expect(w.copies[p.active!].letter).toBe('Z');
+    expect(w.events.some((e) => e.t === 'word')).toBe(true);
+  });
 });

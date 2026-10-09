@@ -3,7 +3,7 @@ import { CAPITAL_COOLDOWN, CAPITAL_DURATION, FOG_STAGES, XP } from '../sim/confi
 import { activeCopy, copyMaxHp } from '../sim/combat';
 import { getForm } from '../sim/glyphDerive';
 import type { LetterCopy, World } from '../sim/types';
-import { ownsWord, WORDS } from '../sim/words';
+import { WORDS } from '../sim/words';
 
 /** Progress (0..1) toward the copy's next level. */
 const levelProgress = (c: LetterCopy) =>
@@ -43,7 +43,7 @@ export class Hud {
   private xpFill: HTMLDivElement;
   private xpText: HTMLSpanElement;
   private capInfo: HTMLDivElement;
-  private words: HTMLDivElement;
+  private words: { row: HTMLDivElement; letters: HTMLSpanElement[]; info: HTMLSpanElement }[] = [];
   private fogWarn: HTMLDivElement;
   private spectate: HTMLDivElement;
   private toasts: HTMLDivElement;
@@ -64,13 +64,22 @@ export class Hud {
     this.fogInfo = el('div', 'hud-small', top);
     this.waveInfo = el('div', 'hud-small', top);
     const bottom = el('div', 'hud-bottom', this.root);
-    this.words = el('div', 'hud-small hud-words', bottom);
     this.capInfo = el('div', 'hud-cap', bottom);
     const xpWrap = el('div', 'hud-xp', bottom);
     const xpBar = el('div', 'bar thin', xpWrap);
     this.xpFill = el('div', 'bar-fill', xpBar);
     this.xpText = el('span', 'hud-small', xpWrap);
     this.row = el('div', 'hud-row', bottom);
+    const wordList = el('div', 'hud-words', this.root);
+    for (const d of WORDS) {
+      const row = el('div', 'hud-word', wordList);
+      const letters = [...d.word].map((ch) => {
+        const s = el('span', 'wl', row);
+        s.textContent = ch;
+        return s;
+      });
+      this.words.push({ row, letters, info: el('span', 'hud-word-info', row) });
+    }
     this.fogWarn = el('div', 'hud-fogwarn', this.root);
     this.fogWarn.textContent = 'IN THE FOG - get back to the clear paper!';
     this.spectate = el('div', 'hud-spectate', this.root);
@@ -170,16 +179,20 @@ export class Hud {
     this.capInfo.style.setProperty('--cap', c.capitalTimer > 0 ? `${(c.capitalTimer / CAPITAL_DURATION) * 100}%` : c.capitalCd > 0 ? `${100 - (c.capitalCd / CAPITAL_COOLDOWN) * 100}%` : '100%');
   }
 
-  /** One quiet line with the word powers this player can spell; hidden when there are none. */
+  /** Side list of every word power: owned letters glow; a fully owned word shows its cooldown or "ready". */
   private updateWords(w: World, id: number): void {
     const p = w.players[id];
-    const parts = WORDS.filter((d) => ownsWord(w, p, d.word)).map((d) => {
-      if (d.effect === 'pierce' && p.pierceTimer > 0) return `${d.word} ${Math.ceil(p.pierceTimer)}s!`;
+    const have = new Set(p.letters.map((c) => w.copies[c].letter));
+    WORDS.forEach((d, i) => {
+      const { row, letters, info } = this.words[i];
+      letters.forEach((s, k) => s.classList.toggle('owned', have.has(d.word[k])));
+      const all = [...d.word].every((ch) => have.has(ch));
       const cd = p.wordCd[d.word] ?? 0;
-      return cd > 0 ? `${d.word.toLowerCase()} ${Math.ceil(cd)}s` : d.word;
+      row.classList.toggle('complete', all);
+      row.classList.toggle('ready', all && cd <= 0);
+      if (d.effect === 'pierce' && p.pierceTimer > 0) info.textContent = `${Math.ceil(p.pierceTimer)}s!`;
+      else info.textContent = all && cd > 0 ? `${Math.ceil(cd)}s` : '';
     });
-    this.words.textContent = parts.join('  ·  ');
-    this.words.style.display = parts.length ? '' : 'none';
   }
 
   destroy(): void {

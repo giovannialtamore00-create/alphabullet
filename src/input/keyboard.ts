@@ -7,6 +7,8 @@ export interface KeyboardHandlers {
   onMinimap?: () => void;
   onEscape?: () => void;
   onDebugKey?: (key: string) => void;
+  /** Letter the local player currently holds, so a word can switch back to it. */
+  activeLetter?: () => string | null;
 }
 
 export class Keyboard {
@@ -14,7 +16,9 @@ export class Keyboard {
   private pendingLetter: string | null = null;
   private pendingCapital = false;
   private pendingWord: string | null = null;
+  private pendingBack: string | null = null;
   private typed = ''; // recent letters, for word powers
+  private heldBefore: (string | null)[] = []; // letter held just before each typed letter
   private lastType = 0;
   enabled = true;
 
@@ -58,7 +62,7 @@ export class Keyboard {
     const m = /^Key([A-Z])$/.exec(e.code);
     if (m && !e.ctrlKey && !e.metaKey && !e.altKey) {
       this.pendingLetter = m[1];
-      if (!e.repeat) this.typeLetter(m[1], e.timeStamp / 1000);
+      if (!e.repeat) this.typeLetter(m[1], e.timeStamp / 1000, this.handlers.activeLetter?.() ?? null);
     }
   };
 
@@ -67,14 +71,20 @@ export class Keyboard {
   };
 
   /** Letters typed within WORD_TYPE_WINDOW of each other build up a word; a known word fires once. */
-  typeLetter(letter: string, now: number): void {
-    if (now - this.lastType > WORD_TYPE_WINDOW) this.typed = '';
+  typeLetter(letter: string, now: number, held: string | null = null): void {
+    if (now - this.lastType > WORD_TYPE_WINDOW) {
+      this.typed = '';
+      this.heldBefore = [];
+    }
     this.lastType = now;
     this.typed = (this.typed + letter).slice(-12);
+    this.heldBefore = [...this.heldBefore, held].slice(-12);
     const word = matchWord(this.typed);
     if (word) {
       this.pendingWord = word;
+      this.pendingBack = this.heldBefore[this.heldBefore.length - word.length] ?? null;
       this.typed = '';
+      this.heldBefore = [];
     }
   }
 
@@ -82,8 +92,9 @@ export class Keyboard {
   poll(): PlayerInput {
     const mx = (this.held.has('ArrowRight') ? 1 : 0) - (this.held.has('ArrowLeft') ? 1 : 0);
     const my = (this.held.has('ArrowDown') ? 1 : 0) - (this.held.has('ArrowUp') ? 1 : 0);
-    const inp: PlayerInput = { mx, my, switchTo: this.pendingLetter, capital: this.pendingCapital, word: this.pendingWord };
+    const inp: PlayerInput = { mx, my, switchTo: this.pendingLetter, capital: this.pendingCapital, word: this.pendingWord, wordBack: this.pendingBack };
     this.pendingWord = null;
+    this.pendingBack = null;
     this.pendingLetter = null;
     this.pendingCapital = false;
     if (!this.enabled) return { mx: 0, my: 0, switchTo: null, capital: false };

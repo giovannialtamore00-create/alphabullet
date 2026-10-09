@@ -8,15 +8,15 @@
 - Playtest 4 questions answered: spawn protection 2 s (PLACEHOLDER), letter break = kill + 60 XP (PLACEHOLDER). Still to confirm: spawn cap 3/s, respawn 1200 px from players.
 - Patch "3 lives" applied: 3 lives per player, each death drops the active letter and respawns; 3rd death eliminates. Only-letter loss respawns with a fresh pool letter (assumption). 73 unit + 3 e2e pass.
 - Patch "online guest smoothness" (playtested OK 2026-10-09): guests see other players/mobs ~4 ticks in the past from a snapshot buffer (src/net/interp.ts), and their own predicted letter is blended between ticks. Guest lag/no-shooting seen in playtest was the host running in a background tab (browser pauses requestAnimationFrame, so the host sim stops). The ?lag fake-connection tool was removed at user request.
-- Patch "word powers" (built + unit tested, NOT playtested yet): own every letter of a word and type it within 1 s per key: PIERCE, BOMB, DASH. Table in src/sim/words.ts, numbers in config.ts (PLACEHOLDER). HUD: one quiet line above the CAPITAL box. 85 unit + 3 e2e pass.
+- Patch "word powers" (built + unit tested, NOT playtested yet): own every letter of a word and type it within 1 s per key: PIERCE, BOMB, DASH. Table in src/sim/words.ts, numbers in config.ts (PLACEHOLDER). 85 unit + 3 e2e pass.
+- M11 "word return + word list" (NOT playtested yet): after typing a full word you switch back to the letter held before its first letter (even if the word didn't fire; skips switch cooldown; works online via input field `b`). HUD: vertical list of all words on the left; owned letters glow orange, missing ones faded, solid border when fully owned, cooldown seconds next to it. 87 unit pass.
 - Uncommitted on purpose: font-check work (src/render/fonts.ts, tests/e2e/fontcheck.spec.ts, tools/); user said to leave it for now.
 - Testing notes: dev server on port 5180 (5173 belongs to another local game); Cloudflare tunnel via `cloudflared tunnel --url http://localhost:5174` (vite allows *.trycloudflare.com). Port 4173 may be taken by another local app; then run e2e with a copy of playwright.config.ts using another port.
 
 ## Next steps
-1. User: push to GitHub and enable Pages (README "Deploy to GitHub Pages").
 2. User: playtest solo + online; report pacing/balance feel (BLOCKERS.md #1).
 3. If resumed: tune config.ts knobs from playtest feedback, re-run tests, commit.
-4. Word powers open questions: (a) typing a word also switches letters (and can end CAPITAL early); recommended fix: press Space, then the word (letters after Space don't switch). (b) Bots don't use words. Then user playtest of words.
+4. Word powers open questions: (a) CAPITAL can still end early from the letter switches while typing. (b) Bots don't use words. (c) Word list: glow strength/position OK? hide words with zero owned letters? Then user playtest of words.
 5. Recommended fix: keep the host sim running when its tab is hidden (game loop is requestAnimationFrame only, src/game/game.ts frame()), else a host switching tabs freezes the match for everyone.
 
 ## Milestones

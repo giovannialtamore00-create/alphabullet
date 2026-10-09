@@ -17,6 +17,7 @@ interface RemoteClient {
   switchTo: string | null;
   capital: boolean;
   word: string | null;
+  wordBack: string | null;
   left: boolean;
 }
 
@@ -41,7 +42,7 @@ export class HostSession {
         if (this.started) return this.reject(conn, 'That match has already started.');
         if (this.names.length >= MAX_HUMANS) return this.reject(conn, 'The room is full.');
         const name = String(m.name || 'Player').slice(0, 14);
-        client = { conn, name, view: { playerId: -1, viewId: -1, sentBullets: new Set(), ack: 0 }, mx: 0, my: 0, switchTo: null, capital: false, word: null, left: false };
+        client = { conn, name, view: { playerId: -1, viewId: -1, sentBullets: new Set(), ack: 0 }, mx: 0, my: 0, switchTo: null, capital: false, word: null, wordBack: null, left: false };
         this.clients.push(client);
         this.broadcastLobby();
       } else if (m.t === 'i' && client) {
@@ -49,7 +50,10 @@ export class HostSession {
         client.my = Math.sign(m.my) || 0;
         if (m.s) client.switchTo = m.s;
         if (m.c) client.capital = true;
-        if (m.w) client.word = m.w;
+        if (m.w) {
+          client.word = m.w;
+          client.wordBack = m.b ?? null;
+        }
         client.view.ack = Math.max(client.view.ack, m.q);
         if (typeof m.v === 'number') client.view.viewId = m.v;
       }
@@ -94,8 +98,9 @@ export class HostSession {
     const out: Record<number, PlayerInput> = {};
     for (const c of this.clients) {
       if (c.left || c.view.playerId < 0) continue;
-      out[c.view.playerId] = { mx: c.mx, my: c.my, switchTo: c.switchTo, capital: c.capital, word: c.word };
+      out[c.view.playerId] = { mx: c.mx, my: c.my, switchTo: c.switchTo, capital: c.capital, word: c.word, wordBack: c.wordBack };
       c.word = null;
+      c.wordBack = null;
       c.switchTo = null;
       c.capital = false;
     }
@@ -148,7 +153,7 @@ export class ClientSession {
     const q = ++this.seq;
     this.pending.push({ q, mx: inp.mx, my: inp.my });
     if (this.pending.length > 90) this.pending.shift();
-    this.conn.send({ t: 'i', q, mx: inp.mx, my: inp.my, s: inp.switchTo, c: inp.capital ? 1 : 0, v: viewId, w: inp.word ?? null } satisfies ClientMsg);
+    this.conn.send({ t: 'i', q, mx: inp.mx, my: inp.my, s: inp.switchTo, c: inp.capital ? 1 : 0, v: viewId, w: inp.word ?? null, b: inp.wordBack ?? null } satisfies ClientMsg);
   }
 
   /** Record the authoritative position of our player and drop acknowledged inputs. */

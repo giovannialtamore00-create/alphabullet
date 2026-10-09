@@ -59,6 +59,10 @@ export class Game {
     this.keyboard = new Keyboard({
       onMinimap: () => (this.minimap = !this.minimap),
       onEscape: () => this.cb.onEscape(),
+      activeLetter: () => {
+        const me = this.world.players[this.localId];
+        return me.active === null ? null : this.world.copies[me.active].letter;
+      },
     });
   }
 

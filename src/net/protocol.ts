@@ -15,7 +15,7 @@ export const EVENT_RANGE = 1600;
 
 export type ClientMsg =
   | { t: 'hello'; name: string; v: number }
-  | { t: 'i'; q: number; mx: number; my: number; s: string | null; c: 0 | 1; v: number; w?: string | null };
+  | { t: 'i'; q: number; mx: number; my: number; s: string | null; c: 0 | 1; v: number; w?: string | null; b?: string | null };
 
 export type HostMsg =
   | { t: 'lobby'; names: string[]; you: number; max: number }

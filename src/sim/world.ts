@@ -126,21 +126,23 @@ export function moveStep(x: number, y: number, mxIn: number, myIn: number): { x:
   };
 }
 
+/** Switch the active letter to an owned copy of `letter`, if not already active. */
+function switchLetter(w: World, p: Player, letter: string): void {
+  const target = p.letters.find((id) => w.copies[id].letter === letter);
+  if (target === undefined || target === p.active) return;
+  endCapital(w, p);
+  selectLetter(w, p, target);
+  p.switchCd = SWITCH_COOLDOWN;
+  p.morph = 0;
+  const rate = activeForm(w, p)!.bullet.rate;
+  p.fireTimer = Math.min(p.fireTimer, 1 / rate);
+  w.events.push({ t: 'switch', id: p.id, letter });
+}
+
 function applyInput(w: World, p: Player, inp: PlayerInput): void {
   p.switchCd -= DT;
   p.morph += DT;
-  if (inp.switchTo && p.switchCd <= 0) {
-    const target = p.letters.find((id) => w.copies[id].letter === inp.switchTo);
-    if (target !== undefined && target !== p.active) {
-      endCapital(w, p);
-      selectLetter(w, p, target);
-      p.switchCd = SWITCH_COOLDOWN;
-      p.morph = 0;
-      const rate = activeForm(w, p)!.bullet.rate;
-      p.fireTimer = Math.min(p.fireTimer, 1 / rate);
-      w.events.push({ t: 'switch', id: p.id, letter: inp.switchTo });
-    }
-  }
+  if (inp.switchTo && p.switchCd <= 0) switchLetter(w, p, inp.switchTo);
   const c = activeCopy(w, p);
   if (inp.capital && c && c.upgraded && c.capitalTimer <= 0 && c.capitalCd <= 0) {
     c.capitalTimer = CAPITAL_DURATION;
@@ -156,6 +158,8 @@ function applyInput(w: World, p: Player, inp: PlayerInput): void {
     p.faceY = inp.my / len;
   }
   if (inp.word) useWord(w, p, inp.word);
+  // After typing a word, go back to the letter held before it (ignores the switch cooldown).
+  if (inp.word && inp.wordBack && p.alive) switchLetter(w, p, inp.wordBack);
   const pos = moveStep(p.x, p.y, inp.mx, inp.my);
   p.x = pos.x;
   p.y = pos.y;
