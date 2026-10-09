@@ -19,6 +19,7 @@ import {
 } from './config';
 import { activeCopy, activeForm, creditXp, damageMob, damagePlayer, playerRadius, selectLetter } from './combat';
 import { createFog, updateFog } from './fog';
+import { useWord } from './words';
 
 import { createCopies, drawFromPool, dropCopy, dropLetters, findSpot, giveCopy, spawnWave, updatePickups, updateWave } from './letters';
 import { makeMob, updateMobs } from './mobs';
@@ -84,6 +85,10 @@ export function createWorld(seed: number, setups: PlayerSetup[], opts: { mobs?: 
       deathTime: null,
       placement: null,
       god: false,
+      wordCd: {},
+      pierceTimer: 0,
+      faceX: 0,
+      faceY: -1,
     };
     w.players.push(p);
   });
@@ -143,6 +148,14 @@ function applyInput(w: World, p: Player, inp: PlayerInput): void {
     p.morph = 0;
     w.events.push({ t: 'capital', id: p.id, letter: c.letter, on: true });
   }
+  for (const k in p.wordCd) p.wordCd[k] = Math.max(0, p.wordCd[k] - DT);
+  p.pierceTimer = Math.max(0, p.pierceTimer - DT);
+  if (inp.mx || inp.my) {
+    const len = Math.hypot(inp.mx, inp.my);
+    p.faceX = inp.mx / len;
+    p.faceY = inp.my / len;
+  }
+  if (inp.word) useWord(w, p, inp.word);
   const pos = moveStep(p.x, p.y, inp.mx, inp.my);
   p.x = pos.x;
   p.y = pos.y;
@@ -192,6 +205,7 @@ function fire(w: World): void {
             dmg: (b.dmg * e.dmgMul * boldMul) / e.pellets,
             life: e.range / b.speed,
             capital: form.capital,
+            pierce: p.pierceTimer > 0,
           });
         }
       }
@@ -222,12 +236,19 @@ function updateBullets(w: World): void {
       if (t.player && (t.player.id === b.owner || !t.player.alive)) continue;
       if (t.mob && t.mob.hp <= 0) continue;
       if (Math.hypot(t.x - b.x, t.y - b.y) > t.r + b.r) continue;
+      const tid = t.mob ? t.mob.id : -1 - t.player!.id;
+      if (b.pierce && b.hitIds?.includes(tid)) continue;
       const shooter = w.players[b.owner];
       const dealt = t.mob
         ? damageMob(w, t.mob, b.dmg, b.owner, b.copyId)
         : damagePlayer(w, t.player!, b.dmg * PVP_DAMAGE_MUL, b.x - b.vx * DT, b.y - b.vy * DT, b.owner);
       shooter.damageDealt += dealt;
       creditXp(w, b.owner, b.copyId, dealt * XP.perDamage);
+      if (b.pierce) {
+        // PIERCE: keep flying, but never hit the same target twice.
+        (b.hitIds ??= []).push(tid);
+        continue;
+      }
       hit = true;
       break;
     }

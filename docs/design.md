@@ -77,6 +77,7 @@ Desktop web browser (keyboard), with no install for players. Stack: **Vite + Typ
 - **Arrow keys:** move (8 directions).
 - **Letter keys A–Z:** switch to that owned letter.
 - **Shift:** activate the CAPITAL power of the active letter (if upgraded and off cooldown).
+- **Word powers:** own every letter of a word (PIERCE, BOMB, DASH) and type it quickly to trigger its effect; each word has its own cooldown. Words are a table in `src/sim/words.ts`.
 - **Tab:** toggle the minimap overlay, at any time. The minimap shows you, other players, and letter pickups. M is not used because letter keys are taken.
 - **Esc:** settings/pause.
 - **Debug mode** (URL flag `?debug`): God mode, give-any-letter, instant upgrade, spawn mobs, show hitboxes/emitters/shield arcs, and an FPS/entity counter. This lets the sim be tested without skill.

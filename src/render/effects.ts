@@ -1,6 +1,7 @@
 /** Ink effects: hit sparks, splats, shield waves, switch puffs, CAPITAL bursts, pickup rings. */
 import { Container, Graphics, Sprite, Texture } from 'pixi.js';
 import { activeForm } from '../sim/combat';
+import { BOMB } from '../sim/config';
 import type { SimEvent, World } from '../sim/types';
 import type { GameRenderer } from './renderer';
 import { splatCanvas } from './paper';
@@ -144,6 +145,21 @@ export class Effects {
           } else this.droplets(p.x, p.y, 10, 160, 0.2, 0.4);
           break;
         }
+        case 'word':
+          if (e.word === 'BOMB') {
+            this.ring(e.x, e.y, { r0: 30, grow: BOMB.radius * 1.6, life: 0.6, width: 10, alpha: 0.85 });
+            this.splat(e.x, e.y, 1.1, 1);
+            this.droplets(e.x, e.y, 24, 520, 0.3, 0.5);
+            if (e.id === this.viewId) this.r.shake(10);
+          } else if (e.word === 'DASH') {
+            // Ink trail from where the dash started to where it landed.
+            for (let k = 0; k <= 6; k++) {
+              const t = k / 6;
+              this.droplets(e.fromX + (e.x - e.fromX) * t, e.fromY + (e.y - e.fromY) * t, 2, 80, 0.18, 0.35);
+            }
+            this.ring(e.x, e.y, { r0: 14, grow: 120, life: 0.3, width: 3 });
+          } else this.ring(e.x, e.y, { follow: e.id, r0: 24, grow: 160, life: 0.6, width: 5 });
+          break;
         case 'shieldBlock': {
           const p = w.players[e.id];
           const form = activeForm(w, p);

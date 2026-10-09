@@ -128,3 +128,9 @@ export const FOG_STAGES: FogStage[] = [
 ];
 
 export const SPATIAL_CELL = 128;
+
+/** Word powers: own every letter of the word, then type it. All PLACEHOLDER. */
+export const WORD_TYPE_WINDOW = 1; // max seconds between typed letters of a word
+export const PIERCE = { duration: 6, cooldown: 30 };
+export const BOMB = { radius: 300, dmg: 60, cooldown: 25 };
+export const DASH = { dist: 350, cooldown: 8 };

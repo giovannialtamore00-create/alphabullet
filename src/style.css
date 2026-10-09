@@ -83,3 +83,4 @@ kbd { font-family: var(--font); font-weight: bold; border: 1.5px solid var(--ink
 .plist li { padding: 3px 0; border-bottom: 1px dashed rgba(27,26,25,.3); }
 body.in-menu #game { display: none; }
 .bar-temp { position: absolute; left: 0; bottom: 0; height: 5px; border-top: 1px solid var(--ink); background: repeating-linear-gradient(45deg, #d99a1e 0 4px, rgba(217,154,30,.35) 4px 8px); }
+.hud-words { font-weight: bold; letter-spacing: 1px; }

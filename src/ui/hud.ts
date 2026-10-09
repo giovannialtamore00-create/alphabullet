@@ -3,6 +3,7 @@ import { CAPITAL_COOLDOWN, CAPITAL_DURATION, FOG_STAGES, XP } from '../sim/confi
 import { activeCopy, copyMaxHp } from '../sim/combat';
 import { getForm } from '../sim/glyphDerive';
 import type { LetterCopy, World } from '../sim/types';
+import { ownsWord, WORDS } from '../sim/words';
 
 /** Progress (0..1) toward the copy's next level. */
 const levelProgress = (c: LetterCopy) =>
@@ -42,6 +43,7 @@ export class Hud {
   private xpFill: HTMLDivElement;
   private xpText: HTMLSpanElement;
   private capInfo: HTMLDivElement;
+  private words: HTMLDivElement;
   private fogWarn: HTMLDivElement;
   private spectate: HTMLDivElement;
   private toasts: HTMLDivElement;
@@ -62,6 +64,7 @@ export class Hud {
     this.fogInfo = el('div', 'hud-small', top);
     this.waveInfo = el('div', 'hud-small', top);
     const bottom = el('div', 'hud-bottom', this.root);
+    this.words = el('div', 'hud-small hud-words', bottom);
     this.capInfo = el('div', 'hud-cap', bottom);
     const xpWrap = el('div', 'hud-xp', bottom);
     const xpBar = el('div', 'bar thin', xpWrap);
@@ -110,6 +113,7 @@ export class Hud {
         : `You placed #${me.placement}.`;
     }
     this.updateLetters(w, shown.id);
+    this.updateWords(w, shown.id);
   }
 
   private updateLetters(w: World, id: number): void {
@@ -164,6 +168,18 @@ export class Hud {
     else this.capInfo.textContent = 'SHIFT: CAPITAL ready!';
     this.capInfo.classList.toggle('ready', c.upgraded && c.capitalTimer <= 0 && c.capitalCd <= 0);
     this.capInfo.style.setProperty('--cap', c.capitalTimer > 0 ? `${(c.capitalTimer / CAPITAL_DURATION) * 100}%` : c.capitalCd > 0 ? `${100 - (c.capitalCd / CAPITAL_COOLDOWN) * 100}%` : '100%');
+  }
+
+  /** One quiet line with the word powers this player can spell; hidden when there are none. */
+  private updateWords(w: World, id: number): void {
+    const p = w.players[id];
+    const parts = WORDS.filter((d) => ownsWord(w, p, d.word)).map((d) => {
+      if (d.effect === 'pierce' && p.pierceTimer > 0) return `${d.word} ${Math.ceil(p.pierceTimer)}s!`;
+      const cd = p.wordCd[d.word] ?? 0;
+      return cd > 0 ? `${d.word.toLowerCase()} ${Math.ceil(cd)}s` : d.word;
+    });
+    this.words.textContent = parts.join('  ·  ');
+    this.words.style.display = parts.length ? '' : 'none';
   }
 
   destroy(): void {

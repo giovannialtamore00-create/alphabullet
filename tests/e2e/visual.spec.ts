@@ -68,3 +68,19 @@ test('visual snapshot of BOLD + CAPITAL temp HP', async ({ page }) => {
   await page.waitForTimeout(900);
   await page.screenshot({ path: 'test-results/bold.png' });
 });
+
+test('visual snapshot of word powers (HUD line + BOMB)', async ({ page }) => {
+  await page.goto('/?debug');
+  await page.getByRole('button', { name: 'Play vs bots' }).click();
+  await page.waitForFunction(() => (window as any).__game?.world?.tick > 10, null, { timeout: 30_000 });
+  await page.evaluate(() => ((window as any).__game.world.players[0].god = true));
+  for (const ch of 'BOMDASH') {
+    await page.selectOption('.debug-panel select', ch);
+    await page.click('[data-k="give"]');
+  }
+  await page.click('[data-k="mobs"]');
+  await page.waitForTimeout(400);
+  await page.keyboard.type('bomb', { delay: 80 });
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: 'test-results/words.png' });
+});

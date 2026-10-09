@@ -44,6 +44,9 @@ export function attachFeedback(game: Game): Effects {
             audio.play('capital', e.id === game.viewId ? 1 : near(p.x, p.y) * 0.7);
           }
           break;
+        case 'word':
+          audio.play(e.word === 'BOMB' ? 'capital' : 'upgrade', e.id === game.viewId ? 1 : near(e.x, e.y) * 0.7);
+          break;
         case 'shieldBlock':
           if (e.id === game.viewId) audio.play('shield', 0.8);
           break;

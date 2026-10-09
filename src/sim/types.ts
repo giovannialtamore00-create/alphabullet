@@ -7,6 +7,7 @@ export interface PlayerInput {
   my: number; // -1, 0, 1
   switchTo: string | null; // capital letter key, e.g. 'A'
   capital: boolean; // Shift pressed this tick
+  word?: string | null; // word power typed this tick, e.g. 'DASH'
 }
 export const NO_INPUT: PlayerInput = { mx: 0, my: 0, switchTo: null, capital: false };
 
@@ -38,6 +39,10 @@ export interface Player {
   deathTime: number | null;
   placement: number | null;
   god: boolean;
+  wordCd: Record<string, number>; // seconds left per word power
+  pierceTimer: number; // seconds of PIERCE left
+  faceX: number; // last movement direction (unit vector), used by DASH
+  faceY: number;
 }
 
 export type CopyState = 'pool' | 'ground' | 'owned';
@@ -85,6 +90,8 @@ export interface Bullet {
   dmg: number;
   life: number;
   capital: boolean;
+  pierce?: boolean; // passes through targets (PIERCE word)
+  hitIds?: number[]; // targets a pierce bullet already hit (mob id, or -1 - player id)
 }
 
 export interface Fog {
@@ -120,6 +127,7 @@ export type SimEvent =
   | { t: 'bold'; id: number; letter: string }
   | { t: 'capital'; id: number; letter: string; on: boolean }
   | { t: 'shieldBlock'; id: number; x: number; y: number; amount: number; angle: number }
+  | { t: 'word'; id: number; word: string; x: number; y: number; fromX: number; fromY: number }
   | { t: 'fogStage'; stage: number }
   | { t: 'letterWave' }
   | { t: 'matchOver'; winner: number | null };

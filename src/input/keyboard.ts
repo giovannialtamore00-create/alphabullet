@@ -1,5 +1,7 @@
 /** Keyboard -> PlayerInput. Arrows move, A-Z switch letter, Shift = CAPITAL, Tab = minimap, Esc = menu. */
+import { WORD_TYPE_WINDOW } from '../sim/config';
 import type { PlayerInput } from '../sim/types';
+import { matchWord } from '../sim/words';
 
 export interface KeyboardHandlers {
   onMinimap?: () => void;
@@ -11,6 +13,9 @@ export class Keyboard {
   private held = new Set<string>();
   private pendingLetter: string | null = null;
   private pendingCapital = false;
+  private pendingWord: string | null = null;
+  private typed = ''; // recent letters, for word powers
+  private lastType = 0;
   enabled = true;
 
   constructor(private handlers: KeyboardHandlers = {}) {
@@ -51,18 +56,34 @@ export class Keyboard {
     }
     // e.code keeps working while Shift is held and on non-QWERTY layouts.
     const m = /^Key([A-Z])$/.exec(e.code);
-    if (m && !e.ctrlKey && !e.metaKey && !e.altKey) this.pendingLetter = m[1];
+    if (m && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      this.pendingLetter = m[1];
+      if (!e.repeat) this.typeLetter(m[1], e.timeStamp / 1000);
+    }
   };
 
   private up = (e: KeyboardEvent) => {
     this.held.delete(e.key);
   };
 
+  /** Letters typed within WORD_TYPE_WINDOW of each other build up a word; a known word fires once. */
+  typeLetter(letter: string, now: number): void {
+    if (now - this.lastType > WORD_TYPE_WINDOW) this.typed = '';
+    this.lastType = now;
+    this.typed = (this.typed + letter).slice(-12);
+    const word = matchWord(this.typed);
+    if (word) {
+      this.pendingWord = word;
+      this.typed = '';
+    }
+  }
+
   /** Input for this tick; one-shot actions are consumed. */
   poll(): PlayerInput {
     const mx = (this.held.has('ArrowRight') ? 1 : 0) - (this.held.has('ArrowLeft') ? 1 : 0);
     const my = (this.held.has('ArrowDown') ? 1 : 0) - (this.held.has('ArrowUp') ? 1 : 0);
-    const inp: PlayerInput = { mx, my, switchTo: this.pendingLetter, capital: this.pendingCapital };
+    const inp: PlayerInput = { mx, my, switchTo: this.pendingLetter, capital: this.pendingCapital, word: this.pendingWord };
+    this.pendingWord = null;
     this.pendingLetter = null;
     this.pendingCapital = false;
     if (!this.enabled) return { mx: 0, my: 0, switchTo: null, capital: false };
