@@ -377,7 +377,7 @@ describe('death and drops', () => {
 });
 
 describe('closing fog', () => {
-  it('shrinks in stages to the final circle in ~10-15 minutes', () => {
+  it('shrinks in stages to the final circle in ~7-11 minutes', () => {
     const w = testWorld(2);
     let t = 0;
     const radii: number[] = [];
@@ -387,8 +387,8 @@ describe('closing fog', () => {
       radii.push(w.fog.r);
     }
     expect(w.fog.phase).toBe('done');
-    expect(t / 60).toBeGreaterThanOrEqual(10);
-    expect(t / 60).toBeLessThanOrEqual(15);
+    expect(t / 60).toBeGreaterThanOrEqual(7);
+    expect(t / 60).toBeLessThanOrEqual(11);
     for (let i = 1; i < radii.length; i++) expect(radii[i]).toBeLessThanOrEqual(radii[i - 1] + 1e-6);
     expect(w.fog.r).toBe(FOG_STAGES[FOG_STAGES.length - 1].radius);
   });

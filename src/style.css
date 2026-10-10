@@ -88,5 +88,5 @@ body.in-menu #game { display: none; }
 .hud-word .wl { opacity: .3; }
 .hud-word .wl.owned { opacity: 1; color: #b5740c; text-shadow: 0 0 6px rgba(217,154,30,.9); }
 .hud-word.complete { border-style: solid; border-color: var(--ink); }
-.hud-word.ready .wl.owned { color: var(--ink); text-shadow: 0 0 6px rgba(217,154,30,1), 0 0 12px rgba(217,154,30,.7); }
+.hud-word.ready .wl.owned { color: var(--ink); text-shadow: 0 0 6px rgba(90,200,255,1), 0 0 12px rgba(90,200,255,.7); }
 .hud-word-info { font-size: 12px; margin-left: 6px; opacity: .8; letter-spacing: 0; }
