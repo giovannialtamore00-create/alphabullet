@@ -24,7 +24,7 @@ export const BULLET = {
   maxRange: 1000,
   capitalRangeMul: 1.2,
   radius: 5,
-  baseDps: 60.84, // total damage/sec of a 1-emitter lowercase letter (46.8 x1.3, balance patch)
+  baseDps: 73.008, // total damage/sec of a 1-emitter lowercase letter (46.8 x1.3 balance patch, then x1.2)
   perExtraEmitterDps: 0, // every letter deals the same total; split evenly between emitters
   baseRate: 6, // shots/sec for 1 emitter; divided by sqrt(emitters)
   shieldLetterDpsMul: 0.4,
@@ -62,6 +62,8 @@ export const PLAYER_LIVES = 3; // deaths allowed; each one costs the active lett
 export const SPAWN_PROTECTION = 2; // PLACEHOLDER
 export const RESPAWN_MIN_DIST_FROM_OLD = 700;
 export const DROP_SCATTER = 110;
+/** Letters dropped by dead players: after `wait` s on the ground they flash for `flash` s (faster and faster), then vanish back to the pool. */
+export const DROP_DECAY = { wait: 7, flash: 3 };
 
 export const XP = {
   threshold: 400, // level 1: BOLD
@@ -106,7 +108,12 @@ export const MOB_DESPAWN_DIST = 2600;
 export const MOB_SPAWN_GROWTH_PER_MIN = 1.18; // was 1.15, escalation +20% (patch)
 export const MOB_SPAWN_RATE_CAP = 3; // PLACEHOLDER: per-player cap, reached at ~11.5 min
 export const MOB_SPAWN_MUL = 1.7; // +70% spawn rate (patch)
-export const mobSpawnRate = (t: number) => MOB_SPAWN_MUL * Math.min(MOB_SPAWN_RATE_CAP, 0.75 * MOB_SPAWN_GROWTH_PER_MIN ** (t / 60));
+/** Extra spawns early (+30% at t=0) fading to fewer late (-30% from 10 min on), linear in between. */
+export const MOB_SPAWN_EARLY_MUL = 1.3;
+export const MOB_SPAWN_LATE_MUL = 0.7;
+export const MOB_SPAWN_LATE_AT = 600;
+export const mobPhaseMul = (t: number) => MOB_SPAWN_EARLY_MUL + (MOB_SPAWN_LATE_MUL - MOB_SPAWN_EARLY_MUL) * Math.min(1, Math.max(0, t / MOB_SPAWN_LATE_AT));
+export const mobSpawnRate = (t: number) => MOB_SPAWN_MUL * mobPhaseMul(t) * Math.min(MOB_SPAWN_RATE_CAP, 0.75 * MOB_SPAWN_GROWTH_PER_MIN ** (t / 60));
 /** Weight of [slender, medium, chunky] at time t. */
 export const mobTierWeights = (t: number): [number, number, number] => [
   Math.max(2, 6 - t / 120) * 1.3, // +30% small mobs

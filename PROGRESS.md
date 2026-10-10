@@ -14,9 +14,10 @@
 - Testing notes: dev server on port 5180 (5173 belongs to another local game); Cloudflare tunnel via `cloudflared tunnel --url http://localhost:5174` (vite allows *.trycloudflare.com). Port 4173 may be taken by another local app; then run e2e with a copy of playwright.config.ts using another port.
 
 - Balance patch (11 changes, see DECISIONS.md "Balance patch"): built, 91 unit + 3 e2e pass, build OK. NOT playtested, NOT committed yet.
+- Patch 2026-10-10 b (built, 109 unit pass, build OK, NOT playtested): player damage x1.2 (BULLET.baseDps); mob spawn x1.3 at start fading linearly to x0.7 at 10 min (mobPhaseMul); new letters spawn inside the final safe circle while the fog moves (letters.ts spawnCircle); death-drop letters flash after 7 s and vanish to the pool 3 s later (DROP_DECAY, LetterCopy.idle, synced in protocol).
 
 ## Next steps
-2. User: playtest solo + online; report pacing/balance feel (BLOCKERS.md #1).
+2. User: playtest the 2026-10-10 patches (fog, mob pacing, letter waves, drop decay), then solo + online; report pacing/balance feel (BLOCKERS.md #1).
 3. If resumed: tune config.ts knobs from playtest feedback, re-run tests, commit.
 4. Word powers open questions: (a) CAPITAL can still end early from the letter switches while typing. (b) Bots don't use words. (c) Word list: glow strength/position OK? hide words with zero owned letters? Then user playtest of words.
 5. Recommended fix: keep the host sim running when its tab is hidden (game loop is requestAnimationFrame only, src/game/game.ts frame()), else a host switching tabs freezes the match for everyone.

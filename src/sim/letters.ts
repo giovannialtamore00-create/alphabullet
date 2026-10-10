@@ -1,6 +1,7 @@
 /** Letter pool (2 copies per letter), pickups, the 50% + timer refill rule, and drops on death. */
 import {
   COPIES_PER_LETTER,
+  DROP_DECAY,
   DROP_SCATTER,
   GROUND_LETTERS,
   LETTER_SPAWN,
@@ -35,6 +36,7 @@ export function createCopies(): LetterCopy[] {
         x: 0,
         y: 0,
         wave: false,
+        idle: 0,
         capitalTimer: 0,
         capitalCd: 0,
         hp: PLAYER_HP,
@@ -79,6 +81,7 @@ export function giveCopy(_w: World, p: Player, c: LetterCopy): void {
 function spawnCircle(w: World): { x: number; y: number; r: number } {
   const f = w.fog;
   if (f.phase === 'wait' && f.timer > 30) return { x: f.x, y: f.y, r: Math.max(0, f.r) };
+  if (f.phase === 'shrink') return { x: f.toX, y: f.toY, r: f.toR }; // fog moving: only the final safe circle
   if (f.phase !== 'done' && f.toR > 100) return { x: f.toX, y: f.toY, r: f.toR };
   return { x: f.x, y: f.y, r: Math.max(0, f.r) };
 }
@@ -175,6 +178,22 @@ export function updateWave(w: World, dt: number): void {
   if (spawnWave(w, LETTER_SPAWN.groundCap, LETTER_SPAWN.count) > 0) w.events.push({ t: 'letterWave' });
 }
 
+/** Death drops left alone for DROP_DECAY.wait + flash seconds vanish back into the pool (fresh, no XP). */
+export function updateDropDecay(w: World, dt: number): void {
+  for (const c of w.copies) {
+    if (c.state !== 'ground' || c.wave) continue;
+    c.idle += dt;
+    if (c.idle < DROP_DECAY.wait + DROP_DECAY.flash) continue;
+    c.state = 'pool';
+    c.idle = 0;
+    c.xp = 0;
+    c.upgraded = false;
+    c.bold = false;
+    c.capitalCd = 0;
+    c.hp = PLAYER_HP;
+  }
+}
+
 /** Put one copy on the ground near (x, y) as a normal pickup, keeping XP/upgrade state. HP refills. */
 export function dropCopy(w: World, c: LetterCopy, x: number, y: number): void {
   const ang = w.rng.next() * Math.PI * 2;
@@ -182,6 +201,7 @@ export function dropCopy(w: World, c: LetterCopy, x: number, y: number): void {
   c.state = 'ground';
   c.owner = null;
   c.wave = false;
+  c.idle = 0;
   c.capitalTimer = 0;
   c.hp = copyMaxHp(c);
   c.x = Math.min(MAP_SIZE - 40, Math.max(40, x + Math.cos(ang) * rad));

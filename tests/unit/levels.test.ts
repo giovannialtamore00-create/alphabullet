@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BOLD, BULLET, FOG_STAGES, CAPITAL_TEMP_HP_FRAC, DT, LETTER_AREA_SPAWN_MUL, MAP_SIZE, MOB_KILL_HEAL_FRAC, MOB_TIERS, PLAYER_HP, PLAYER_LIVES, SPAWN_PROTECTION, XP, mobSpawnRate, mobTierWeights } from '../../src/sim/config';
+import { BOLD, BULLET, FOG_STAGES, CAPITAL_TEMP_HP_FRAC, DT, LETTER_AREA_SPAWN_MUL, MAP_SIZE, MOB_KILL_HEAL_FRAC, MOB_TIERS, PLAYER_HP, PLAYER_LIVES, SPAWN_PROTECTION, XP, mobPhaseMul, mobSpawnRate, mobTierWeights } from '../../src/sim/config';
 import { activeCopy, creditXp, damagePlayer } from '../../src/sim/combat';
 import { makeMob, updateMobs } from '../../src/sim/mobs';
 import { NO_INPUT, type World } from '../../src/sim/types';
@@ -109,8 +109,15 @@ describe('mobs', () => {
   });
 
   it('spawn rate grows 18% per minute', () => {
-    expect(mobSpawnRate(60) / mobSpawnRate(0)).toBeCloseTo(1.18);
-    expect(mobSpawnRate(300) / mobSpawnRate(240)).toBeCloseTo(1.18);
+    const base = (t: number) => mobSpawnRate(t) / mobPhaseMul(t);
+    expect(base(60) / base(0)).toBeCloseTo(1.18);
+    expect(base(300) / base(240)).toBeCloseTo(1.18);
+  });
+
+  it('early match spawns +30%, late match -30%', () => {
+    expect(mobPhaseMul(0)).toBeCloseTo(1.3);
+    expect(mobPhaseMul(600)).toBeCloseTo(0.7);
+    expect(mobPhaseMul(2000)).toBeCloseTo(0.7);
   });
 
   it('killing a mob heals 0.5% of max HP', () => {

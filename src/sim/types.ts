@@ -68,6 +68,7 @@ export interface LetterCopy {
   x: number;
   y: number;
   wave: boolean; // counts toward the 8 map letters (false for death drops)
+  idle: number; // seconds a death drop has lain on the ground (decays after DROP_DECAY)
   capitalTimer: number;
   capitalCd: number;
   hp: number; // own HP pool; for the owner's active letter the live value is Player.hp

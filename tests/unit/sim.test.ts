@@ -15,7 +15,7 @@ import {
 } from '../../src/sim/config';
 import { activeCopy, activeForm, damagePlayer } from '../../src/sim/combat';
 import { updateFog } from '../../src/sim/fog';
-import { drawFromPool, groundCount, updateWave, waveCount, updatePickups } from '../../src/sim/letters';
+import { dropCopy, drawFromPool, findSpot, groundCount, updateWave, waveCount, updatePickups } from '../../src/sim/letters';
 import { makeMob } from '../../src/sim/mobs';
 import type { Player, World } from '../../src/sim/types';
 import { createWorld, debugGiveLetter, debugUpgradeActive, hashWorld, removePlayer, step } from '../../src/sim/world';
@@ -459,5 +459,36 @@ describe('determinism', () => {
     }
     expect(hashWorld(a)).toBe(hashWorld(b));
     expect(a.mobs.length).toBeGreaterThan(0);
+  });
+});
+
+describe('drop decay and fog spawns', () => {
+  it('a death drop vanishes to the pool after 7s + 3s, a wave letter does not', () => {
+    const w = testWorld(1);
+    isolate(w);
+    const [a, b] = [w.copies[0], w.copies[1]];
+    dropCopy(w, a, 500, 500);
+    b.state = 'ground';
+    b.wave = true;
+    run(w, 9 * 30);
+    expect(a.state).toBe('ground');
+    run(w, 1.5 * 30);
+    expect(a.state).toBe('pool');
+    expect(b.state).toBe('ground');
+  });
+
+  it('while the fog moves, new letters land inside the final circle', () => {
+    const w = testWorld(1);
+    w.fog.phase = 'shrink';
+    w.fog.x = 4000;
+    w.fog.y = 4000;
+    w.fog.r = 3000;
+    w.fog.toX = 3000;
+    w.fog.toY = 3000;
+    w.fog.toR = 800;
+    for (let i = 0; i < 20; i++) {
+      const s = findSpot(w, []);
+      expect(Math.hypot(s.x - 3000, s.y - 3000)).toBeLessThanOrEqual(800);
+    }
   });
 });

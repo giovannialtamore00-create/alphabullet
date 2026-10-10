@@ -127,7 +127,7 @@ export function encodeSnapshot(w: World, cv: ClientView, events: SimEvent[]): Sn
       ...WORDS.map((d) => r1(p.wordCd[d.word] ?? 0)),
     ]),
     pl: w.players.map((p) => p.letters),
-    c: w.copies.map((c) => [STATES.indexOf(c.state), c.owner ?? -1, r0(c.x), r0(c.y), r0(c.xp), c.upgraded ? 1 : 0, r1(c.capitalTimer), r1(c.capitalCd), c.wave ? 1 : 0, c.bold ? 1 : 0, r1(c.hp)]),
+    c: w.copies.map((c) => [STATES.indexOf(c.state), c.owner ?? -1, r0(c.x), r0(c.y), r0(c.xp), c.upgraded ? 1 : 0, r1(c.capitalTimer), r1(c.capitalCd), c.wave ? 1 : 0, c.bold ? 1 : 0, r1(c.hp), r1(c.idle)]),
     m: w.mobs.filter((m) => near(m.x, m.y)).map((m) => [m.id, MOB_KEYS.indexOf(m.kind), r0(m.x), r0(m.y), r0(m.hp)]),
     bn,
     bg,
@@ -187,6 +187,7 @@ export function applySnapshot(w: World, s: Snapshot, opts: { keepLocal?: number 
     c.wave = !!a[8];
     c.bold = !!a[9];
     c.hp = a[10];
+    c.idle = a[11] ?? 0;
   });
   const old = new Map(w.mobs.map((m) => [m.id, m]));
   w.mobs = s.m.map(([id, k, x, y, hp]) => {

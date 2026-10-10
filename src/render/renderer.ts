@@ -1,6 +1,6 @@
 /** PixiJS renderer: paper floor, ink glyphs, camera, fog, minimap. Reads the world; never mutates it. */
 import { Application, Container, Graphics, Sprite, Text, Texture, TilingSprite } from 'pixi.js';
-import { MAP_SIZE } from '../sim/config';
+import { DROP_DECAY, MAP_SIZE } from '../sim/config';
 import { activeCopy, activeForm, glyphPose } from '../sim/combat';
 import { getForm } from '../sim/glyphDerive';
 import { MOBS } from '../sim/glyphs';
@@ -229,6 +229,9 @@ export class GameRenderer {
       }
       const pulse = Math.sin(this.time * 4 + c.id);
       v.root.position.set(c.x, c.y);
+      // Decaying death drop: blink, accelerating (2 Hz -> 11 Hz) until it vanishes.
+      const t = c.idle - DROP_DECAY.wait;
+      v.root.visible = c.wave || t <= 0 || Math.sin(Math.PI * 2 * (2 * t + 1.5 * t * t)) > 0;
       v.halo.scale.set((c.upgraded ? 1.5 : 1.15) + pulse * 0.15);
       v.halo.alpha = (c.upgraded ? 0.75 : 0.55) + pulse * 0.2;
       v.glyph.scale.set(0.5 * (0.92 + pulse * 0.08));
