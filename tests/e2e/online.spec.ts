@@ -31,6 +31,9 @@ test('host and client play an online match over PeerJS', async ({ browser }) => 
     return { local: g.localId, humans: g.world.players.filter((p: any) => !p.isBot).length, total: g.world.players.length };
   });
   expect(info).toEqual({ local: 1, humans: 2, total: 8 });
+  // Snapshots arrive on the unreliable fast channel, not the reliable fallback.
+  const fastIn = await client.evaluate(() => (window as any).__game.net.client.conn.fastReceived());
+  expect(fastIn).toBeGreaterThan(20);
 
   // Client input reaches the host's authoritative sim.
   const x0 = await host.evaluate(() => (window as any).__game.world.players[1].x);

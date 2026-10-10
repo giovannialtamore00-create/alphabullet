@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advanceBullets, applySnapshot, type Snapshot } from '../../src/net/protocol';
+import { advanceBullets, applySnapshot, filterEvents, MOB_RANGE_X, MOB_RANGE_Y, NET_VERSION, SLOW_EVERY, type Snapshot } from '../../src/net/protocol';
 import { ClientSession, HostSession, MAX_HUMANS } from '../../src/net/session';
 import { memoryPair } from '../../src/net/transport';
 import { botInputs } from '../../src/sim/bots';
@@ -61,7 +61,7 @@ describe('networking (in-memory transport)', () => {
     expect(Math.abs(pred.x - hostW.players[1].x)).toBeLessThan(15);
   });
 
-  it('snapshots only carry nearby mobs and send each bullet once', () => {
+  it('snapshots only carry on-screen mobs; bullets repeat for at most 3 snapshots outside full ones', () => {
     const s = setup();
     const players = s.host.start(3, []);
     const w = createWorld(3, players);
@@ -70,11 +70,75 @@ describe('networking (in-memory transport)', () => {
       s.host.afterTick(w);
     }
     const me = w.players[1];
-    for (const snap of s.snaps) for (const m of snap.m) expect(Math.abs(m[2] - me.x) < 1400 && Math.abs(m[3] - me.y) < 1400).toBe(true);
-    const ids = s.snaps.flatMap((x) => x.bn.map((b) => b[0]));
-    expect(new Set(ids).size).toBe(ids.length);
+    for (const snap of s.snaps)
+      for (let j = 0; j < snap.m.length; j += 5) expect(Math.abs(snap.m[j + 2] - me.x) < MOB_RANGE_X && Math.abs(snap.m[j + 3] - me.y) < MOB_RANGE_Y).toBe(true);
+    const counts = new Map<number, number>();
+    for (const snap of s.snaps) if (!snap.full) for (const b of snap.bn) counts.set(b[0], (counts.get(b[0]) ?? 0) + 1);
+    for (const n of counts.values()) expect(n).toBeLessThanOrEqual(3);
     const bytes = JSON.stringify(s.snaps[s.snaps.length - 1]).length;
     expect(bytes).toBeLessThan(12000);
+    expect(s.snaps.filter((x) => x.ps).length).toBeGreaterThanOrEqual(Math.floor(s.snaps.length / SLOW_EVERY));
+  });
+
+  it('with 25% of fast messages lost, the guest mirror still matches the host and no event plays twice', () => {
+    const host = new HostSession('Host');
+    const [hc, cc] = memoryPair({ dropFast: 0.25, seed: 11 });
+    host.addConn(hc);
+    const client = new ClientSession(cc, 'Guest');
+    const snaps: Snapshot[] = [];
+    client.onSnapshot = (x) => snaps.push(x);
+    client.join();
+    const players = host.start(9, ['B1', 'B2', 'B3', 'B4', 'B5', 'B6']);
+    const hostW = createWorld(9, players);
+    const mirror = createWorld(9, players);
+    const brains = new Map();
+    const net = { evTick: -1 };
+    let hostEvents = 0;
+    let mirrorEvents = 0;
+    let lastFull = false;
+    for (let t = 0; t < 300; t++) {
+      client.sendInput({ mx: t % 60 < 30 ? 1 : -1, my: 0, switchTo: null, capital: false }, 1);
+      step(hostW, { ...botInputs(hostW, brains), ...host.inputs() });
+      hostEvents += filterEvents(hostW, hostW.events, { playerId: 1, viewId: 1 } as never).length;
+      host.afterTick(hostW);
+      while (snaps.length) {
+        const snap = snaps.shift()!;
+        applySnapshot(mirror, snap, { net });
+        mirrorEvents += mirror.events.length;
+        client.reconcile(snap, 1);
+        lastFull = !!snap.full;
+      }
+      advanceBullets(mirror, 1 / 30);
+      if (t > 240 && lastFull) break; // compare right after a full resync
+    }
+    expect(lastFull).toBe(true);
+    for (const [a, b] of hostW.players.map((p, i) => [p, mirror.players[i]] as const)) {
+      expect(Math.abs(a.x - b.x)).toBeLessThan(15);
+      expect(b.letters).toEqual(a.letters);
+      expect(b.kills).toBe(a.kills);
+    }
+    expect(mirror.copies.map((c) => c.state)).toEqual(hostW.copies.map((c) => c.state));
+    const me = hostW.players[1];
+    const mirrorIds = new Set(mirror.bullets.map((b) => b.id));
+    const nearHost = hostW.bullets.filter((b) => b.life > 0.1 && Math.abs(b.x - me.x) < 1400 && Math.abs(b.y - me.y) < 1400);
+    expect(nearHost.length).toBeGreaterThan(0);
+    for (const b of nearHost) expect(mirrorIds.has(b.id)).toBe(true);
+    for (const id of mirrorIds) expect(hostW.bullets.some((h) => h.id === id)).toBe(true);
+    expect(mirrorEvents).toBeLessThanOrEqual(hostEvents); // never duplicated
+    expect(mirrorEvents).toBeGreaterThan(hostEvents * 0.9); // repeats recover nearly all lost batches
+  });
+
+  it('late movement inputs are ignored; presses still apply', () => {
+    const host = new HostSession('Host');
+    const [hc, cc] = memoryPair();
+    host.addConn(hc);
+    cc.send({ t: 'hello', name: 'G', v: NET_VERSION });
+    host.start(1, []);
+    cc.send({ t: 'i', q: 5, mx: 1, my: 0, s: null, c: 0, v: 1 });
+    cc.send({ t: 'i', q: 4, mx: -1, my: 0, s: null, c: 1, v: 1 });
+    const inp = host.inputs()[1];
+    expect(inp.mx).toBe(1);
+    expect(inp.capital).toBe(true);
   });
 
   it('switch and CAPITAL presses are not lost between ticks', () => {

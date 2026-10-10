@@ -3,18 +3,28 @@ import Peer, { type DataConnection } from 'peerjs';
 
 export interface Conn {
   send(msg: unknown): void;
+  /** Unreliable, unordered delivery (may be lost or arrive late). Falls back to send. */
+  sendFast?(msg: unknown): void;
+  /** Messages received on the unreliable channel so far (for tests/debug). */
+  fastReceived?(): number;
   onMessage(fn: (m: any) => void): void;
   onClose(fn: () => void): void;
   close(): void;
 }
 
-/** Two connected in-memory endpoints (synchronous delivery). */
-export function memoryPair(): [Conn, Conn] {
+/** Two connected in-memory endpoints (synchronous delivery). `dropFast` = chance each sendFast message is lost. */
+export function memoryPair(opts: { dropFast?: number; seed?: number } = {}): [Conn, Conn] {
+  let seed = opts.seed ?? 1;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
   const mk = () => ({ msg: [] as ((m: any) => void)[], close: [] as (() => void)[], open: true });
   const a = mk();
   const b = mk();
   const end = (me: typeof a, other: typeof a): Conn => ({
     send: (m) => {
+      if (me.open && other.open) other.msg.forEach((f) => f(JSON.parse(JSON.stringify(m))));
+    },
+    sendFast: (m) => {
+      if (rand() < (opts.dropFast ?? 0)) return;
       if (me.open && other.open) other.msg.forEach((f) => f(JSON.parse(JSON.stringify(m))));
     },
     onMessage: (f) => me.msg.push(f),
@@ -52,18 +62,52 @@ function wrap(dc: DataConnection): Conn {
   // ICE failures surface on the underlying RTCPeerConnection.
   const pc = dc.peerConnection;
   if (pc) pc.addEventListener('connectionstatechange', () => ['failed', 'closed'].includes(pc.connectionState) && fireClose());
+  // Second channel without retransmits or ordering: a lost snapshot never holds back newer ones.
+  // Both sides create it with the same fixed id (negotiated), so no extra signalling is needed.
+  let fast: RTCDataChannel | null = null;
+  try {
+    fast = pc?.createDataChannel('fast', { negotiated: true, id: FAST_CHANNEL_ID, ordered: false, maxRetransmits: 0 }) ?? null;
+  } catch {
+    fast = null; // fall back to the reliable channel
+  }
+  const msgFns: ((m: any) => void)[] = [];
+  let fastIn = 0;
+  if (fast)
+    fast.onmessage = (e) => {
+      fastIn++;
+      let m: unknown;
+      try {
+        m = JSON.parse(e.data);
+      } catch {
+        return;
+      }
+      msgFns.forEach((f) => f(m));
+    };
+  const send = (m: unknown) => {
+    if (!closed && dc.open) dc.send(m);
+  };
   return {
-    send: (m) => {
-      if (!closed && dc.open) dc.send(m);
+    send,
+    sendFast: (m) => {
+      if (closed) return;
+      if (fast?.readyState === 'open') fast.send(JSON.stringify(m));
+      else send(m);
     },
-    onMessage: (f) => dc.on('data', f),
+    fastReceived: () => fastIn,
+    onMessage: (f) => {
+      msgFns.push(f);
+      dc.on('data', f);
+    },
     onClose: (f) => closeFns.push(f),
     close: () => {
+      fast?.close();
       dc.close();
       fireClose();
     },
   };
 }
+
+const FAST_CHANNEL_ID = 100;
 
 export interface HostTransport {
   code: string;

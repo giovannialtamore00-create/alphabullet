@@ -19,12 +19,16 @@
 - Patch 2026-10-10 c (built, 112 unit pass, build OK, NOT playtested): word powers JETPACK (5 s: fast spin x3 rev/s, fire x2.5, recoil drift opposite the shots), EXILE (other players in a 1600x900 box around you teleported >=2000 px away), XRAY (3 s: switches to your X, piercing unlimited-range lasers, returns to old letter). Numbers in config.ts (JET, EXILE, XRAY) are placeholders; cooldowns 40/45/45.
 - Patch 2026-10-10 d (113 unit pass, build OK, NOT playtested): word power CHUNKY (10 s, cooldown 30, both placeholders): body/hitbox/gun positions x1.2, bullets x1.3 (config CHUNKY, bodyMul in combat.ts).
 - Patch 2026-10-10 e (113 unit pass, NOT playtested): all bullet range x1.25 (BULLET.rangePerUnit 1250, minRange 175, maxRange 1250); capital keeps its x1.2 on top.
+- Patch "guest lag" 2026-10-11 (127 unit + online e2e pass, build OK, NOT playtested, NOT committed): snapshots ~40% smaller and sent on an unreliable WebRTC channel with repeats + 1 s full resync (NET_VERSION 8). Details in DECISIONS.md "[Patch: guest lag]".
+
+- Patch "duplicate shuffle" 2026-10-11 (129 unit pass incl. tests/unit/shuffle.test.ts, tsc OK, NOT playtested, NOT committed): see DECISIONS.md.
 
 ## Next steps
 2. User: playtest the 2026-10-10 patches (fog, mob pacing, letter waves, drop decay, JETPACK/EXILE/XRAY), then solo + online; report pacing/balance feel (BLOCKERS.md #1).
 3. If resumed: tune config.ts knobs from playtest feedback, re-run tests, commit.
 4. Word powers open questions: (a) CAPITAL can still end early from the letter switches while typing. (b) Bots don't use words. (c) Word list: glow strength/position OK? hide words with zero owned letters? Then user playtest of words.
-5. Recommended fix: keep the host sim running when its tab is hidden (game loop is requestAnimationFrame only, src/game/game.ts frame()), else a host switching tabs freezes the match for everyone.
+5. User: playtest "guest lag" patch online with a friend on a crowded board; then commit. Both players must refresh (NET_VERSION 8).
+6. Recommended fix: keep the host sim running when its tab is hidden (game loop is requestAnimationFrame only, src/game/game.ts frame()), else a host switching tabs freezes the match for everyone.
 
 ## Milestones
 1. Core logic + tests  [done]

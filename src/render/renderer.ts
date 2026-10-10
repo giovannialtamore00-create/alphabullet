@@ -3,7 +3,7 @@ import { Application, Container, Graphics, Sprite, Text, Texture, TilingSprite }
 import { DROP_DECAY, MAP_SIZE } from '../sim/config';
 import { activeCopy, activeForm, bodyMul, glyphPose } from '../sim/combat';
 import { getForm } from '../sim/glyphDerive';
-import { MOBS } from '../sim/glyphs';
+import { LETTER_KEYS, MOBS } from '../sim/glyphs';
 import type { Bullet, Mob, Player, World } from '../sim/types';
 import { glyphCanvas } from './glyphCanvas';
 import { inkDotCanvas, paperCanvas, softDotCanvas } from './paper';
@@ -49,7 +49,7 @@ export class GameRenderer {
   private mobs = new Map<number, Sprite>();
   private bullets = new Map<number, Sprite>();
   private bulletPool: Sprite[] = [];
-  private pickups = new Map<number, { root: Container; halo: Sprite; glyph: Sprite; key: string }>();
+  private pickups = new Map<number, { root: Container; halo: Sprite; glyph: Sprite; key: string; shuf?: boolean }>();
   private players = new Map<number, PlayerView>();
   private prevP = new Map<number, { x: number; y: number }>();
   private prevM = new Map<number, { x: number; y: number }>();
@@ -232,6 +232,14 @@ export class GameRenderer {
       // Decaying death drop: blink, accelerating (2 Hz -> 11 Hz) until it vanishes.
       const t = c.idle - DROP_DECAY.wait;
       v.root.visible = c.wave || t <= 0 || Math.sin(Math.PI * 2 * (2 * t + 1.5 * t * t)) > 0;
+      // Shuffling duplicate: the glyph flickers through random letters until it turns into a new one.
+      if (c.shuffle > 0) {
+        v.glyph.texture = this.letterTex(LETTER_KEYS[Math.floor(this.time * 12 + c.id * 7) % LETTER_KEYS.length], false);
+        v.shuf = true;
+      } else if (v.shuf) {
+        v.glyph.texture = this.letterTex(c.letter, c.upgraded, c.bold);
+        v.shuf = false;
+      }
       v.halo.scale.set((c.upgraded ? 1.5 : 1.15) + pulse * 0.15);
       v.halo.alpha = (c.upgraded ? 0.75 : 0.55) + pulse * 0.2;
       v.glyph.scale.set(0.5 * (0.92 + pulse * 0.08));

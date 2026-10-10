@@ -7,7 +7,7 @@ import type { PlayerInput, SimEvent, World } from '../sim/types';
 import { Keyboard } from '../input/keyboard';
 import { GameRenderer } from '../render/renderer';
 import { Hud } from '../ui/hud';
-import { advanceBullets, applySnapshot, type Snapshot } from '../net/protocol';
+import { advanceBullets, applySnapshot, type ClientNetState, type Snapshot } from '../net/protocol';
 import type { ClientSession, HostSession } from '../net/session';
 import { SnapshotBuffer } from '../net/interp';
 
@@ -49,6 +49,7 @@ export class Game {
   /** Online roles: host runs the sim and sends snapshots; client only mirrors. */
   net: { host?: HostSession; client?: ClientSession } = {};
   private snapBuf = new SnapshotBuffer<Snapshot>();
+  private netState: ClientNetState = { evTick: -1 };
 
   constructor(
     private parent: HTMLElement,
@@ -162,10 +163,11 @@ export class Game {
   applyNetSnapshot(snap: Snapshot): void {
     const client = this.net.client!;
     this.renderer.snapshotPrev(this.world);
-    applySnapshot(this.world, snap, { keepLocal: this.localId });
+    applySnapshot(this.world, snap, { keepLocal: this.localId, net: this.netState });
     client.reconcile(snap, this.localId);
     this.applyPrediction(client);
-    if (snap.e.length) for (const l of this.listeners) l(snap.e, this.world);
+    const events = this.world.events;
+    if (events.length) for (const l of this.listeners) l(events, this.world);
   }
 
   /** Client mode setup: render without lerp for our predicted player and local bullets. */

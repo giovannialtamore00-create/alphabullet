@@ -68,6 +68,8 @@ export const RESPAWN_MIN_DIST_FROM_OLD = 700;
 export const DROP_SCATTER = 110;
 /** Letters dropped by dead players: after `wait` s on the ground they flash for `flash` s (faster and faster), then vanish back to the pool. */
 export const DROP_DECAY = { wait: 7, flash: 3 };
+/** Walking over a ground letter you already own shuffles it into a letter you miss after `time` seconds (PLACEHOLDER). */
+export const SHUFFLE = { time: 3 };
 
 export const XP = {
   threshold: 400, // level 1: BOLD

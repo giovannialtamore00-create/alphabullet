@@ -29,7 +29,7 @@ import { activeCopy, activeForm, addSlow, bodyMul, creditXp, damageMob, damagePl
 import { createFog, updateFog } from './fog';
 import { refreshPassives, useWord } from './words';
 
-import { createCopies, drawFromPool, dropCopy, dropLetters, findSpot, giveCopy, spawnWave, updateDropDecay, updatePickups, updateWave } from './letters';
+import { createCopies, drawFromPool, dropCopy, dropLetters, findSpot, giveCopy, spawnWave, updateDropDecay, updatePickups, updateShuffle, updateWave } from './letters';
 import { makeMob, updateMobs } from './mobs';
 import { Rng } from './rng';
 import { SpatialHash } from './spatialHash';
@@ -517,6 +517,7 @@ export function step(w: World, inputs: Record<number, PlayerInput>): void {
   updateMobs(w, DT);
   updateFog(w, DT);
   updatePickups(w);
+  updateShuffle(w, DT);
   updateWave(w, DT);
   updateDropDecay(w, DT);
   resolveDeaths(w);

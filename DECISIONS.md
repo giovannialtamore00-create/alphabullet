@@ -102,3 +102,16 @@ Every judgment call, newest at the bottom. Format: `- [M<n>] decision. Why.`
 
 ## [Patch: wave + fog pacing]
 - Letter waves every 15 s (was 20) during the first 120 s (LETTER_SPAWN.earlyUntil/earlyBonus). Fog stages 2+ (wait and shrink) last 25% longer = 20% slower (FOG_LATE_SLOW); stage 1 unchanged.
+
+## [Patch: guest lag (smaller snapshots + unreliable channel)]
+- Cause found: everything went over one reliable, ordered PeerJS channel, so one lost packet held back all later snapshots (freeze then burst), and crowded boards made snapshots ~4.9 KB at 20 Hz. Local 2-tab "unplayable" test = host tab hidden/covered (rAF pauses); NOT fixed here (Next steps).
+- Second WebRTC data channel per connection (negotiated id 100, ordered:false, maxRetransmits:0) created in transport.ts wrap(). PeerJS reliable:false only disables ordering, it still retransmits. Falls back to the reliable channel if not open.
+- Fast channel carries snapshots and plain-movement inputs. Inputs with switch/CAPITAL/word stay reliable. Host ignores movement with an older seq.
+- Snapshot size: player fields split fast/slow (slow = placement, kills, mobKills, lettersCollected, deathTime, word cooldowns, passives, sent every 5th snapshot ~4 Hz); maxHp/lives/letters stay fast (HP bar, lives toast, switching read them at once). Copies: all only on slow snapshots, plus nearby ground copies and copies whose state/owner changed. Mobs: screen box +-1300 x +-850 (was 1400 square), flat array. Crowded run: avg 4.9 KB -> 2.85 KB.
+- Loss repair: new bullets and gone ids repeated in the next 2 snapshots (re-encoded at current position); every 20th snapshot (~1 s) is full (all bullets, client drops strays). Event batches repeated for 4 ticks with their tick; client applies each tick once (ClientNetState).
+- Known trade-off: word cooldown numbers and kill counts update at ~4 Hz on guests.
+
+## [Patch: duplicate shuffle] 2026-10-11
+- Walking over a ground letter you already own starts a 3 s shuffle (config SHUFFLE.time, PLACEHOLDER). It then becomes a pool letter you lack; you must step off and onto it to collect (lockFor, host only). Other players can still take the original while it shuffles.
+- Pick order: letters of words you are already building > any word letter > any missing letter (letters.ts pickMissing). If you own everything left, the duplicate stays.
+- The old copy returns to the pool with XP reset (copies are fixed per letter, so the swap is a pool exchange). Snapshot field a[12] = shuffle timer (optional, no NET_VERSION bump). Renderer flickers random letters while shuffling.

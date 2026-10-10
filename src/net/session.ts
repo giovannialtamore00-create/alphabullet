@@ -2,7 +2,7 @@
 import { MAX_PLAYERS } from '../sim/config';
 import type { PlayerInput, SimEvent, World } from '../sim/types';
 import { moveStep, type PlayerSetup } from '../sim/world';
-import { encodeSnapshot, NET_VERSION, type ClientMsg, type ClientView, type HostMsg, type Snapshot } from './protocol';
+import { encodeSnapshot, NET_VERSION, newClientView, type ClientMsg, type ClientView, type HostMsg, type Snapshot } from './protocol';
 import type { Conn } from './transport';
 
 /** Human player cap online (bots always fill to 8). See DECISIONS.md. */
@@ -14,6 +14,7 @@ interface RemoteClient {
   view: ClientView;
   mx: number;
   my: number;
+  lastQ: number; // newest input seq seen (older movement arriving late is ignored)
   switchTo: string | null;
   capital: boolean;
   word: string | null;
@@ -55,8 +56,8 @@ export class HostSession {
           const old = back.conn;
           back.conn = conn;
           back.away = null;
-          back.view.sentBullets = new Set();
-          back.view.ack = 0;
+          back.view = newClientView(back.view.playerId);
+          back.lastQ = 0;
           client = back;
           old.close();
           this.onClientAway(back.view.playerId, false);
@@ -66,12 +67,15 @@ export class HostSession {
         if (this.started) return this.reject(conn, 'That match has already started.');
         if (this.names.length >= MAX_HUMANS) return this.reject(conn, 'The room is full.');
         const name = String(m.name || 'Player').slice(0, 14);
-        client = { conn, name, view: { playerId: -1, viewId: -1, sentBullets: new Set(), ack: 0 }, mx: 0, my: 0, switchTo: null, capital: false, word: null, wordBack: null, left: false, token: newToken(), away: null };
+        client = { conn, name, view: newClientView(), mx: 0, my: 0, lastQ: 0, switchTo: null, capital: false, word: null, wordBack: null, left: false, token: newToken(), away: null };
         this.clients.push(client);
         this.broadcastLobby();
       } else if (m.t === 'i' && client) {
-        client.mx = Math.sign(m.mx) || 0;
-        client.my = Math.sign(m.my) || 0;
+        if (m.q > client.lastQ) {
+          client.lastQ = m.q;
+          client.mx = Math.sign(m.mx) || 0;
+          client.my = Math.sign(m.my) || 0;
+        }
         if (m.s) client.switchTo = m.s;
         if (m.c) client.capital = true;
         if (m.w) {
@@ -146,7 +150,9 @@ export class HostSession {
     if (w.tick % 3 === 0 && !w.over) return;
     for (const c of this.clients) {
       if (c.left || c.view.playerId < 0 || c.away) continue;
-      c.conn.send({ t: 's', snap: encodeSnapshot(w, c.view, this.pendingEvents) } satisfies HostMsg);
+      const msg = { t: 's', snap: encodeSnapshot(w, c.view, this.pendingEvents) } satisfies HostMsg;
+      if (c.conn.sendFast) c.conn.sendFast(msg);
+      else c.conn.send(msg);
     }
     this.pendingEvents = [];
   }
@@ -190,7 +196,10 @@ export class ClientSession {
     const q = ++this.seq;
     this.pending.push({ q, mx: inp.mx, my: inp.my });
     if (this.pending.length > 90) this.pending.shift();
-    this.conn.send({ t: 'i', q, mx: inp.mx, my: inp.my, s: inp.switchTo, c: inp.capital ? 1 : 0, v: viewId, w: inp.word ?? null, b: inp.wordBack ?? null } satisfies ClientMsg);
+    const msg = { t: 'i', q, mx: inp.mx, my: inp.my, s: inp.switchTo, c: inp.capital ? 1 : 0, v: viewId, w: inp.word ?? null, b: inp.wordBack ?? null } satisfies ClientMsg;
+    // Plain movement may be lost (the next tick's input replaces it); presses must arrive.
+    if (inp.switchTo || inp.capital || inp.word || !this.conn.sendFast) this.conn.send(msg);
+    else this.conn.sendFast(msg);
   }
 
   /** Record the authoritative position of our player and drop acknowledged inputs. */

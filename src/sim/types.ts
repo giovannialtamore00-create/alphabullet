@@ -76,6 +76,9 @@ export interface LetterCopy {
   capitalTimer: number;
   capitalCd: number;
   hp: number; // own HP pool; for the owner's active letter the live value is Player.hp
+  shuffle: number; // seconds left until this ground letter turns into one `shuffleFor` is missing (0 = not shuffling)
+  shuffleFor: number; // player who started the shuffle, host only
+  lockFor: number; // player who must step off before picking this up (fresh shuffle result), -1 = none, host only
 }
 
 export interface Mob {

@@ -4,6 +4,7 @@ import {
   DROP_DECAY,
   DROP_SCATTER,
   GROUND_LETTERS,
+  SHUFFLE,
   LETTER_SPAWN,
   MAGNET,
   DT,
@@ -43,6 +44,9 @@ export function createCopies(): LetterCopy[] {
         capitalTimer: 0,
         capitalCd: 0,
         hp: PLAYER_HP,
+        shuffle: 0,
+        shuffleFor: -1,
+        lockFor: -1,
       });
   return out;
 }
@@ -85,6 +89,8 @@ export function giveCopy(_w: World, p: Player, c: LetterCopy): void {
   c.state = 'owned';
   c.owner = p.id;
   c.wave = false;
+  c.shuffle = 0;
+  c.lockFor = -1;
   p.letters.push(c.id);
   if (p.active === null) {
     p.active = c.id;
@@ -179,13 +185,72 @@ export function updatePickups(w: World): void {
     const reach = PICKUP_RADIUS + playerRadius(w, p);
     for (const c of w.copies) {
       if (c.state !== 'ground') continue;
-      if (Math.abs(c.x - p.x) > reach || Math.abs(c.y - p.y) > reach) continue;
-      if (Math.hypot(c.x - p.x, c.y - p.y) > reach) continue;
-      if (ownsLetter(w, p, c.letter)) continue; // no duplicates: walking over it does nothing
+      if (Math.abs(c.x - p.x) > reach || Math.abs(c.y - p.y) > reach || Math.hypot(c.x - p.x, c.y - p.y) > reach) {
+        if (c.lockFor === p.id) c.lockFor = -1; // stepped off a fresh shuffle result: it can be collected now
+        continue;
+      }
+      if (c.lockFor === p.id) continue;
+      if (ownsLetter(w, p, c.letter)) {
+        // Duplicate: passing over it starts a shuffle into a letter the player is missing.
+        if (c.shuffle <= 0) {
+          c.shuffle = SHUFFLE.time;
+          c.shuffleFor = p.id;
+        }
+        continue;
+      }
       giveCopy(w, p, c);
       p.lettersCollected++;
       w.events.push({ t: 'pickup', id: p.id, letter: c.letter, x: c.x, y: c.y });
     }
+  }
+}
+
+/** Pool copy of a letter `p` is missing: first letters of words `p` is already building, then any word letter, then any. */
+function pickMissing(w: World, p: Player): LetterCopy | null {
+  const have = new Set(p.letters.map((id) => w.copies[id].letter));
+  const avail = w.copies.filter((c) => c.state === 'pool' && !have.has(c.letter));
+  if (!avail.length) return null;
+  const building = new Set<string>();
+  const inWords = new Set<string>();
+  for (const d of WORDS) {
+    const partial = [...d.word].some((ch) => have.has(ch));
+    for (const ch of d.word) {
+      inWords.add(ch);
+      if (partial) building.add(ch);
+    }
+  }
+  const tier = [avail.filter((c) => building.has(c.letter)), avail.filter((c) => inWords.has(c.letter)), avail].find((t) => t.length)!;
+  return tier[Math.floor(w.rng.next() * tier.length)];
+}
+
+/** Shuffling duplicates count down, then turn into a missing letter that the starter must step off and onto again to collect. */
+export function updateShuffle(w: World, dt: number): void {
+  for (const c of w.copies) {
+    if (c.state !== 'ground' || c.shuffle <= 0) continue;
+    const p = w.players[c.shuffleFor];
+    if (!p || !p.alive) {
+      c.shuffle = 0;
+      continue;
+    }
+    c.shuffle -= dt;
+    if (c.shuffle > 0) continue;
+    c.shuffle = 0;
+    const n = pickMissing(w, p);
+    if (!n) continue; // owns everything left: stays as it is
+    n.state = 'ground';
+    n.owner = null;
+    n.wave = c.wave;
+    n.idle = c.idle;
+    n.x = c.x;
+    n.y = c.y;
+    n.lockFor = p.id;
+    c.state = 'pool';
+    c.idle = 0;
+    c.xp = 0;
+    c.upgraded = false;
+    c.bold = false;
+    c.capitalCd = 0;
+    c.hp = PLAYER_HP;
   }
 }
 
@@ -222,6 +287,8 @@ export function dropCopy(w: World, c: LetterCopy, x: number, y: number): void {
   c.owner = null;
   c.wave = false;
   c.idle = 0;
+  c.shuffle = 0;
+  c.lockFor = -1;
   c.capitalTimer = 0;
   c.hp = copyMaxHp(c);
   c.x = Math.min(MAP_SIZE - 40, Math.max(40, x + Math.cos(ang) * rad));
