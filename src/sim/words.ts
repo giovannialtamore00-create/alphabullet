@@ -1,5 +1,5 @@
 /** Word powers: type a word whose letters you all own to trigger its effect. Pure: no DOM. */
-import { BOMB, BOUNCE, DASH, DISARM, ERASE, FLIP, FREEZE, LIFE, MAGNET, MAP_SIZE, PIERCE, PUSH, PVP_DAMAGE_MUL, SPEED, SPIN, SPLASH, VOID, XP, ZAP } from './config';
+import { BOMB, BOUNCE, DASH, DISARM, ERASE, FLIP, FREEZE, LIFE, MAGNET, MAP_SIZE, PIERCE, PUSH, PVP_DAMAGE_MUL, SPEED, SPIN, SPLASH, VOID, WORD_IMMUNITY, XP, ZAP } from './config';
 import { creditXp, damageMob, damagePlayer } from './combat';
 import type { Player, TimedFx, World } from './types';
 
@@ -123,6 +123,7 @@ export function useWord(w: World, p: Player, word: string): boolean {
   const fromY = p.y;
   EFFECTS[def.effect](w, p);
   p.wordCd[word] = def.cooldown;
+  p.spawnProt = Math.max(p.spawnProt, WORD_IMMUNITY);
   w.events.push({ t: 'word', id: p.id, word, x: p.x, y: p.y, fromX, fromY });
   return true;
 }

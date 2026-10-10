@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DISARM, FREEZE, MAGNET, PUSH, SPEED, VOID, ZAP } from '../../src/sim/config';
+import { DISARM, FREEZE, MAGNET, PUSH, SPEED, VOID, WORD_IMMUNITY, ZAP } from '../../src/sim/config';
 import { makeMob } from '../../src/sim/mobs';
 import { NO_INPUT, type Bullet, type World } from '../../src/sim/types';
 import { debugGiveLetter, step } from '../../src/sim/world';
@@ -40,6 +40,7 @@ describe('new word powers', () => {
       expect(ownsWord(w, p, word), word + ' letters available').toBe(true);
       expect(useWord(w, p, word), word).toBe(true);
       expect(p.wordCd[word]).toBeGreaterThan(0);
+      expect(p.spawnProt, word + ' immunity').toBeGreaterThanOrEqual(WORD_IMMUNITY);
     }
   });
 

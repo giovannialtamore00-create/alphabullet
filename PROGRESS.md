@@ -14,7 +14,7 @@
 - Testing notes: dev server on port 5180 (5173 belongs to another local game); Cloudflare tunnel via `cloudflared tunnel --url http://localhost:5174` (vite allows *.trycloudflare.com). Port 4173 may be taken by another local app; then run e2e with a copy of playwright.config.ts using another port.
 
 - Balance patch (11 changes, see DECISIONS.md "Balance patch"): built, 91 unit + 3 e2e pass, build OK. NOT playtested, NOT committed yet.
-- Patch 2026-10-10 b (built, 109 unit pass, build OK, NOT playtested): player damage x1.2 (BULLET.baseDps); mob spawn x1.3 at start fading linearly to x0.7 at 10 min (mobPhaseMul); new letters spawn inside the final safe circle while the fog moves (letters.ts spawnCircle); death-drop letters flash after 7 s and vanish to the pool 3 s later (DROP_DECAY, LetterCopy.idle, synced in protocol).
+- Patch 2026-10-10 b (built, 109 unit pass, build OK, NOT playtested): player damage x1.2 (BULLET.baseDps); mob spawn x1.3 at start fading linearly to x0.7 at 10 min (mobPhaseMul); new letters spawn inside the final safe circle while the fog moves (letters.ts spawnCircle); death-drop letters flash after 7 s and vanish to the pool 3 s later (DROP_DECAY, LetterCopy.idle, synced in protocol). Also: 0.5 s immunity when a word power fires (WORD_IMMUNITY, reuses spawnProt, so the player blinks).
 
 ## Next steps
 2. User: playtest the 2026-10-10 patches (fog, mob pacing, letter waves, drop decay), then solo + online; report pacing/balance feel (BLOCKERS.md #1).
