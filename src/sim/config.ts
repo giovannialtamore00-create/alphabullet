@@ -170,3 +170,5 @@ export const JET = { duration: 5, cooldown: 40, revPerSec: 3, fireMul: 2.5, kick
 export const EXILE = { cooldown: 45, halfW: 800, halfH: 450, minDist: 2000 };
 /** XRAY: the caster's X letter fires piercing, unlimited-range lasers. */
 export const XRAY = { duration: 3, cooldown: 45, speedMul: 3, radiusMul: 0.6 };
+/** CHUNKY: bigger body (and hitbox) and bigger bullets. Duration and cooldown PLACEHOLDER. */
+export const CHUNKY = { duration: 10, cooldown: 30, sizeMul: 1.2, bulletMul: 1.3 };

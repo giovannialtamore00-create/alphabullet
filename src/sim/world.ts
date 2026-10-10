@@ -6,6 +6,7 @@ import {
   BOLD,
   BOUNCE,
   BULLET,
+  CHUNKY,
   DISARM,
   ERASE,
   DT,
@@ -24,7 +25,7 @@ import {
   XRAY,
   ZAP,
 } from './config';
-import { activeCopy, activeForm, addSlow, creditXp, damageMob, damagePlayer, glyphPose, playerRadius, posePoint, selectLetter, speedMul } from './combat';
+import { activeCopy, activeForm, addSlow, bodyMul, creditXp, damageMob, damagePlayer, glyphPose, playerRadius, posePoint, selectLetter, speedMul } from './combat';
 import { createFog, updateFog } from './fog';
 import { useWord } from './words';
 
@@ -230,7 +231,7 @@ function fire(w: World): void {
       const boldR = w.copies[p.active].bold ? BOLD.bulletRadiusMul : 1;
       for (const e of form.emitters) {
         const [edx, edy] = posePoint(pose, e.dx, e.dy);
-        const [ex, ey] = posePoint(pose, e.x * form.size, e.y * form.size);
+        const [ex, ey] = posePoint(pose, e.x * form.size * bodyMul(p), e.y * form.size * bodyMul(p));
         const ang0 = Math.atan2(edy, edx);
         const spread = e.pellets > 1 ? (BULLET.dotSpreadDeg * Math.PI) / 180 : 0;
         for (let k = 0; k < e.pellets; k++) {
@@ -247,7 +248,7 @@ function fire(w: World): void {
             y: p.y + ey,
             vx: e.pellets > 1 ? Math.cos(ang) * sp : edx * sp,
             vy: e.pellets > 1 ? Math.sin(ang) * sp : edy * sp,
-            r: b.radius * boldR * (laser ? XRAY.radiusMul : 1),
+            r: b.radius * boldR * (p.fx.chunky > 0 ? CHUNKY.bulletMul : 1) * (laser ? XRAY.radiusMul : 1),
             dmg: (b.dmg * e.dmgMul) / e.pellets,
             life: laser ? (MAP_SIZE * 1.5) / sp : e.range / b.speed,
             capital: form.capital,

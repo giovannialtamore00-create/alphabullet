@@ -1,7 +1,7 @@
 /** PixiJS renderer: paper floor, ink glyphs, camera, fog, minimap. Reads the world; never mutates it. */
 import { Application, Container, Graphics, Sprite, Text, Texture, TilingSprite } from 'pixi.js';
 import { DROP_DECAY, MAP_SIZE } from '../sim/config';
-import { activeCopy, activeForm, glyphPose } from '../sim/combat';
+import { activeCopy, activeForm, bodyMul, glyphPose } from '../sim/combat';
 import { getForm } from '../sim/glyphDerive';
 import { MOBS } from '../sim/glyphs';
 import type { Bullet, Mob, Player, World } from '../sim/types';
@@ -347,11 +347,12 @@ export class GameRenderer {
       const m = Math.min(1, p.morph / (cap ? 0.35 : 0.22));
       const pop = m < 1 ? 0.55 + 0.45 * m + Math.sin(m * Math.PI) * (cap ? 0.35 : 0.15) : 1;
       const pose = glyphPose(p);
-      v.glyph.scale.set(0.5 * pop, 0.5 * (m < 1 ? 0.7 + 0.3 * m : 1) * pop * (pose.flip ? -1 : 1));
+      const big = bodyMul(p);
+      v.glyph.scale.set(0.5 * pop * big, 0.5 * (m < 1 ? 0.7 + 0.3 * m : 1) * pop * big * (pose.flip ? -1 : 1));
       v.glyph.rotation = pose.rot;
       v.flash = Math.max(0, v.flash - dt);
       v.glyph.tint = v.flash > 0 ? 0xb8402a : INK;
-      const r = form.radius;
+      const r = form.radius * big;
       v.marker.clear();
       if (p.id === opts.localId) {
         v.marker.ellipse(0, r + 8, r * 0.95, 6).stroke({ width: 3, color: INK, alpha: 0.85 });

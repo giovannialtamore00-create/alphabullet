@@ -1,4 +1,4 @@
-import { FREEZE, JET, PLAYER_HP, SPEED, SPIN, XP } from './config';
+import { CHUNKY, FREEZE, JET, PLAYER_HP, SPEED, SPIN, XP } from './config';
 import { getForm, shieldCovers, type DerivedForm } from './glyphDerive';
 import type { LetterCopy, Mob, Player, World } from './types';
 
@@ -53,8 +53,11 @@ export function addSlow(t: { slow?: number; slowT?: number }): void {
   t.slowT = FREEZE.slowTime;
 }
 
+/** CHUNKY makes the body (glyph, hitbox, gun positions) bigger. */
+export const bodyMul = (p: Player): number => (p.fx.chunky > 0 ? CHUNKY.sizeMul : 1);
+
 export function playerRadius(w: World, p: Player): number {
-  return activeForm(w, p)?.radius ?? 18;
+  return (activeForm(w, p)?.radius ?? 18) * bodyMul(p);
 }
 
 /** Max HP of one letter's own pool. */

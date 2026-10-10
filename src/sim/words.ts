@@ -1,5 +1,5 @@
 /** Word powers: type a word whose letters you all own to trigger its effect. Pure: no DOM. */
-import { BOMB, BOUNCE, DASH, DISARM, ERASE, EXILE, FLIP, JET, FREEZE, LIFE, MAGNET, MAP_SIZE, PIERCE, PUSH, PVP_DAMAGE_MUL, SPEED, SPIN, SPLASH, VOID, WORD_IMMUNITY, XP, XRAY, ZAP } from './config';
+import { BOMB, BOUNCE, CHUNKY, DASH, DISARM, ERASE, EXILE, FLIP, JET, FREEZE, LIFE, MAGNET, MAP_SIZE, PIERCE, PUSH, PVP_DAMAGE_MUL, SPEED, SPIN, SPLASH, VOID, WORD_IMMUNITY, XP, XRAY, ZAP } from './config';
 import { creditXp, damageMob, damagePlayer } from './combat';
 import { findSpot } from './letters';
 import type { Player, TimedFx, World } from './types';
@@ -82,6 +82,8 @@ const EFFECTS = {
   flip: timed('flip', FLIP.duration),
   /** Nearby letters on the ground slide toward the player. */
   magnet: timed('magnet', MAGNET.duration),
+  /** Bigger body and bullets. */
+  chunky: timed('chunky', CHUNKY.duration),
   /** Fast spin, faster fire and recoil drift (see fire() in world.ts). */
   jet: timed('jet', JET.duration),
   /** Every other player in the caster's view is teleported far away, inside the safe circle. */
@@ -123,6 +125,7 @@ export const WORDS: WordDef[] = [
   { word: 'MAGNET', cooldown: MAGNET.cooldown, effect: 'magnet' },
   { word: 'JETPACK', cooldown: JET.cooldown, effect: 'jet' },
   { word: 'EXILE', cooldown: EXILE.cooldown, effect: 'exile' },
+  { word: 'CHUNKY', cooldown: CHUNKY.cooldown, effect: 'chunky' },
   { word: 'XRAY', cooldown: XRAY.cooldown, effect: 'xray' },
 ];
 

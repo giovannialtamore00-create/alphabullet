@@ -16,6 +16,7 @@
 - Balance patch (11 changes, see DECISIONS.md "Balance patch"): built, 91 unit + 3 e2e pass, build OK. NOT playtested, NOT committed yet.
 - Patch 2026-10-10 b (built, 109 unit pass, build OK, NOT playtested): player damage x1.2 (BULLET.baseDps); mob spawn x1.3 at start fading linearly to x0.7 at 10 min (mobPhaseMul); new letters spawn inside the final safe circle while the fog moves (letters.ts spawnCircle); death-drop letters flash after 7 s and vanish to the pool 3 s later (DROP_DECAY, LetterCopy.idle, synced in protocol). Also: 0.5 s immunity when a word power fires (WORD_IMMUNITY, reuses spawnProt, so the player blinks).
 - Patch 2026-10-10 c (built, 112 unit pass, build OK, NOT playtested): word powers JETPACK (5 s: fast spin x3 rev/s, fire x2.5, recoil drift opposite the shots), EXILE (other players in a 1600x900 box around you teleported >=2000 px away), XRAY (3 s: switches to your X, piercing unlimited-range lasers, returns to old letter). Numbers in config.ts (JET, EXILE, XRAY) are placeholders; cooldowns 40/45/45.
+- Patch 2026-10-10 d (113 unit pass, build OK, NOT playtested): word power CHUNKY (10 s, cooldown 30, both placeholders): body/hitbox/gun positions x1.2, bullets x1.3 (config CHUNKY, bodyMul in combat.ts).
 
 ## Next steps
 2. User: playtest the 2026-10-10 patches (fog, mob pacing, letter waves, drop decay, JETPACK/EXILE/XRAY), then solo + online; report pacing/balance feel (BLOCKERS.md #1).

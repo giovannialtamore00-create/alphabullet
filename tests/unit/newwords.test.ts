@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DISARM, EXILE, FREEZE, JET, XRAY, MAGNET, PUSH, SPEED, VOID, WORD_IMMUNITY, ZAP } from '../../src/sim/config';
+import { CHUNKY, DISARM, EXILE, FREEZE, JET, XRAY, MAGNET, PUSH, SPEED, VOID, WORD_IMMUNITY, ZAP } from '../../src/sim/config';
+import { playerRadius } from '../../src/sim/combat';
 import { makeMob } from '../../src/sim/mobs';
 import { NO_INPUT, type Bullet, type World } from '../../src/sim/types';
 import { debugGiveLetter, step } from '../../src/sim/world';
@@ -14,7 +15,7 @@ function setup(...words: string[]): World {
 }
 
 const say = (word: string) => ({ ...NO_INPUT, word });
-const NEW_WORDS = ['PUSH', 'BOUNCE', 'FREEZE', 'ERASE', 'VOID', 'SQUIRT', 'DISARM', 'QUICK', 'LIFE', 'ZAP', 'WHIRL', 'FLIP', 'MAGNET', 'JETPACK', 'EXILE', 'XRAY'];
+const NEW_WORDS = ['PUSH', 'BOUNCE', 'FREEZE', 'ERASE', 'VOID', 'SQUIRT', 'DISARM', 'QUICK', 'LIFE', 'ZAP', 'WHIRL', 'FLIP', 'MAGNET', 'JETPACK', 'EXILE', 'XRAY', 'CHUNKY'];
 
 const shot = (w: World, owner: number, x: number, y: number, vx: number, vy: number, extra: Partial<Bullet> = {}): Bullet => {
   const b: Bullet = { id: w.nextId++, owner, copyId: w.players[owner].active!, x, y, vx, vy, r: 5, dmg: 10, life: 2, capital: false, ...extra };
@@ -301,5 +302,21 @@ describe('JETPACK, EXILE, XRAY', () => {
     expect(lasers.every((b) => b.pierce && b.life > 5)).toBe(true);
     run(w, Math.ceil(XRAY.duration * 30));
     expect(w.copies[p.active!].letter).toBe(before);
+  });
+});
+
+describe('CHUNKY', () => {
+  it('makes the body 20% bigger and bullets 30% bigger, then wears off', () => {
+    const w = setup('CHUNKY');
+    const p = w.players[0];
+    p.fireTimer = 0;
+    const r0 = playerRadius(w, p);
+    step(w, { 0: say('CHUNKY') });
+    expect(playerRadius(w, p)).toBeCloseTo(r0 * CHUNKY.sizeMul, 6);
+    const mine = w.bullets.filter((b) => b.owner === 0);
+    expect(mine.length).toBeGreaterThan(0);
+    expect(mine[0].r / 5).toBeCloseTo(CHUNKY.bulletMul, 1);
+    run(w, Math.ceil(CHUNKY.duration * 30) + 2);
+    expect(playerRadius(w, p)).toBeCloseTo(r0, 6);
   });
 });
