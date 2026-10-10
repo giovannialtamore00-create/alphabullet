@@ -168,6 +168,9 @@ export class ClientSession {
   private pending: { q: number; mx: number; my: number }[] = [];
   private server = { x: 0, y: 0 };
   private hasServer = false;
+  private lastMul = 1;
+  /** Visual correction that fades to 0: hides small jumps when the host disagrees with our prediction. */
+  private off = { x: 0, y: 0 };
 
   constructor(readonly conn: Conn, private name: string, private rejoinToken?: string) {
     conn.onMessage((m: HostMsg) => {
@@ -194,13 +197,32 @@ export class ClientSession {
   reconcile(s: Snapshot, localId: number): void {
     const a = s.p[localId];
     if (!a) return;
+    const before = this.raw(this.lastMul);
     this.server = { x: a[0], y: a[1] };
     this.hasServer = true;
     this.pending = this.pending.filter((p) => p.q > s.ack);
+    const after = this.raw(this.lastMul)!;
+    if (before) {
+      const dx = before.x - after.x;
+      const dy = before.y - after.y;
+      // Big jumps (DASH, respawn, push) snap; small disagreements fade out.
+      this.off = Math.hypot(dx, dy) > 100 ? { x: 0, y: 0 } : { x: this.off.x + dx, y: this.off.y + dy };
+    }
   }
 
-  /** Predicted position: server position plus inputs the host has not applied yet. */
+  /** Fade the visual correction; call once per client tick. */
+  tickSmoothing(): void {
+    this.off = { x: this.off.x * 0.85, y: this.off.y * 0.85 };
+  }
+
+  /** Predicted position: server position plus inputs the host has not applied yet, plus the fading correction. */
   predicted(mul = 1): { x: number; y: number } | null {
+    this.lastMul = mul;
+    const pos = this.raw(mul);
+    return pos && { x: pos.x + this.off.x, y: pos.y + this.off.y };
+  }
+
+  private raw(mul: number): { x: number; y: number } | null {
     if (!this.hasServer) return null;
     let pos = { ...this.server };
     for (const p of this.pending) pos = moveStep(pos.x, pos.y, p.mx, p.my, mul);

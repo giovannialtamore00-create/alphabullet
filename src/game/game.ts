@@ -145,6 +145,7 @@ export class Game {
     const me = this.world.players[this.localId];
     client.sendInput(me.alive ? local : { mx: 0, my: 0, switchTo: null, capital: false }, this.viewId);
     this.renderer.localPrev.set(me.id, { x: me.x, y: me.y });
+    client.tickSmoothing();
     this.applyPrediction(client);
   }
 
