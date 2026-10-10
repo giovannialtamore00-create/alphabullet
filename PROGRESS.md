@@ -68,3 +68,5 @@
 - DISARM lock 0.3s. ZAP chains until no new target in range (cap 50). EXILE may land up to 20% of safe radius into fog. XRAY 5s, continuous ray (30 shots/s), 2x DPS. Shield blocks heal 1:1 (SHIELD.healFrac). ERASE now active: 12s, 45s cooldown (no passive slot).
 - Tests: tests/unit/wordtweaks.test.ts, bots.test.ts; 125 unit tests pass.
 - Open: playtest all of the above; tune SHIELD.healFrac, XRAY ray look, bot letter pull.
+
+- Wave/fog pacing patch: waves 5 s sooner in first 2 min, fog stages 2+ 20% slower. Built, tsc + 125 tests pass, needs playtest, not committed.

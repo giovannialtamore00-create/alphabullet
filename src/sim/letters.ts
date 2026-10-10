@@ -191,9 +191,10 @@ export function updatePickups(w: World): void {
 
 /** Every LETTER_SPAWN.every seconds, 3 new letters appear (up to the ground cap). */
 export function updateWave(w: World, dt: number): void {
-  w.wave.timer = (w.wave.timer ?? LETTER_SPAWN.every) - dt;
+  const every = w.time < LETTER_SPAWN.earlyUntil ? LETTER_SPAWN.every - LETTER_SPAWN.earlyBonus : LETTER_SPAWN.every;
+  w.wave.timer = (w.wave.timer ?? every) - dt;
   if (w.wave.timer > 0) return;
-  w.wave.timer += LETTER_SPAWN.every;
+  w.wave.timer += every;
   if (spawnWave(w, LETTER_SPAWN.groundCap, LETTER_SPAWN.count) > 0) w.events.push({ t: 'letterWave' });
 }
 

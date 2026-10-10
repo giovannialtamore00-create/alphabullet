@@ -59,7 +59,7 @@ export const VOWEL_WEIGHT = 1.15;
 export const UNDERUSED_WEIGHT = 0.85;
 export const OWNED_PENALTY = 2;
 /** Every `every` seconds `count` pool letters appear on the map, up to `groundCap` lying on the ground. */
-export const LETTER_SPAWN = { every: 20, count: 3, groundCap: 16 }; // groundCap PLACEHOLDER
+export const LETTER_SPAWN = { every: 20, count: 3, groundCap: 16, earlyUntil: 120, earlyBonus: 5 }; // groundCap PLACEHOLDER; waves come 5 s sooner in the first 2 min
 export const GROUND_LETTERS = 8;
 export const PLAYER_LIVES = 3; // deaths allowed; each one costs the active letter, the last eliminates
 /** Seconds of invulnerability after a letter-loss respawn. */
@@ -139,6 +139,7 @@ export interface FogStage {
 /** Starts covering the whole map; ~11 minutes until the circle closes. */
 export const FOG_START_RADIUS = MAP_SIZE * 0.72;
 export const FOG_SPEED = 1.4; // fog timeline runs 40% faster (patch): wait and shrink times are divided by this
+const FOG_LATE_SLOW = 1 / 0.8; // stages 2+ take 25% longer = 20% slower
 export const FOG_STAGES: FogStage[] = ([
   // dps x1.5 in playtest 4 (was 2, 3, 5, 8, 12, 20)
   { wait: 30 * FOG_SPEED, shrink: 60, radius: 3200, dps: 3 },
@@ -147,7 +148,10 @@ export const FOG_STAGES: FogStage[] = ([
   { wait: 78, shrink: 30, radius: 400, dps: 12 },
   { wait: 58.5, shrink: 30, radius: 150, dps: 18 },
   { wait: 39, shrink: 30, radius: 0, dps: 30 },
-] as FogStage[]).map((s) => ({ ...s, wait: s.wait / FOG_SPEED, shrink: s.shrink / FOG_SPEED }));
+] as FogStage[]).map((s, i) => {
+  const slow = i === 0 ? 1 : FOG_LATE_SLOW; // after the first stage the fog is 20% slower
+  return { ...s, wait: (s.wait / FOG_SPEED) * slow, shrink: (s.shrink / FOG_SPEED) * slow };
+});
 
 export const SPATIAL_CELL = 128;
 

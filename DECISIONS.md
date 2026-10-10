@@ -99,3 +99,6 @@ Every judgment call, newest at the bottom. Format: `- [M<n>] decision. Why.`
 - Kept as typed one-shots: JETPACK, VOID, BOMB, DASH, PUSH, LIFE, EXILE, SQUIRT, XRAY (permanent piercing laser would be too strong).
 - Implementation: the fx timer is kept full each tick by `refreshPassives` (words.ts); WHIRL wraps at a whole number of turns so the spin stays smooth.
 - [Patch: guest smoothness 2] With uneven packet timing the host applies the guest's inputs a tick early/late, so the guest's predicted position jumped ~13 px (one step) about every 20 ticks (simulated 40-80 ms jittery link, p95 jump 13 px). Now ClientSession keeps a visual correction offset: each snapshot's disagreement is absorbed into it and it fades by 15% per tick (jumps over 100 px still snap). Same sim, p95 jump 2 px. Not covered: JETPACK drift is host-only and still not predicted.
+
+## [Patch: wave + fog pacing]
+- Letter waves every 15 s (was 20) during the first 120 s (LETTER_SPAWN.earlyUntil/earlyBonus). Fog stages 2+ (wait and shrink) last 25% longer = 20% slower (FOG_LATE_SLOW); stage 1 unchanged.

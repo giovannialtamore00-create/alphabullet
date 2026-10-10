@@ -22,4 +22,4 @@ Stack: Vite + TypeScript + PixiJS, Vitest, Playwright, PeerJS. Static site deplo
 - Dev: `npm run dev` · Build: `npm run build` · Unit tests: `npm test` · Smoke: `npm run test:e2e`
 
 ## Status
-All milestones done. Patches: online guest smoothness (done), word powers (needs playtest + typing-vs-switch decision), balance patch + 12 new word powers (built, need playtest). Next steps in PROGRESS.md; see also BLOCKERS.md. M23 bot fluidity + word tweaks (needs playtest).
+All milestones done. Patches: wave+fog pacing M25 (needs playtest), online guest smoothness (done), word powers (needs playtest + typing-vs-switch decision), balance patch + 12 new word powers (built, need playtest). Next steps in PROGRESS.md; see also BLOCKERS.md. M23 bot fluidity + word tweaks (needs playtest).
