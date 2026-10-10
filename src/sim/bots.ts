@@ -16,6 +16,11 @@ export interface BotBrain {
   wanderT: number;
   switchT: number;
   strafe: number;
+  sx: number; // smoothed steering (low-pass) so movement doesn't jitter
+  sy: number;
+  mx: number; // last quantized output, for hysteresis
+  my: number;
+  target: number; // sticky letter-pickup target (copy id), -1 = none
 }
 
 const KITE_RANGE = 330;
@@ -30,7 +35,7 @@ export function botName(rng: Rng): string {
 
 export function createBrain(seed: number): BotBrain {
   const rng = new Rng(seed);
-  return { rng, wanderX: 0, wanderY: 0, wanderT: 0, switchT: 2 + rng.next() * 4, strafe: rng.next() < 0.5 ? 1 : -1 };
+  return { rng, wanderX: 0, wanderY: 0, wanderT: 0, switchT: 2 + rng.next() * 4, strafe: rng.next() < 0.5 ? 1 : -1, sx: 0, sy: 0, mx: 0, my: 0, target: -1 };
 }
 
 function safeCircle(w: World) {
@@ -61,6 +66,27 @@ export function botInput(w: World, id: number, brain: BotBrain): PlayerInput {
   const dt = 1 / 30;
   let vx = 0;
   let vy = 0;
+
+  // 0) Pick a letter to collect; keep the same one until it is gone (no dithering between two).
+  let pickup: { x: number; y: number } | null = null;
+  const sticky = brain.target >= 0 ? w.copies[brain.target] : null;
+  if (sticky && sticky.state === 'ground' && !ownsLetter(w, p, sticky.letter) && Math.hypot(sticky.x - w.fog.x, sticky.y - w.fog.y) <= w.fog.r) {
+    pickup = sticky;
+  } else {
+    brain.target = -1;
+    let dBest = PICKUP_RANGE;
+    for (let i = 0; i < w.copies.length; i++) {
+      const c = w.copies[i];
+      if (c.state !== 'ground' || ownsLetter(w, p, c.letter)) continue;
+      if (Math.hypot(c.x - w.fog.x, c.y - w.fog.y) > w.fog.r) continue;
+      const d = Math.hypot(c.x - p.x, c.y - p.y);
+      if (d < dBest) {
+        dBest = d;
+        pickup = c;
+        brain.target = i;
+      }
+    }
+  }
 
   // 1) Stay out of the fog.
   const safe = safeCircle(w);
@@ -127,18 +153,8 @@ export function botInput(w: World, id: number, brain: BotBrain): PlayerInput {
       }
     }
   } else {
-    // 4) Collect letters, else wander inside the safe circle.
-    let target: { x: number; y: number } | null = null;
-    let dBest = PICKUP_RANGE;
-    for (const c of w.copies) {
-      if (c.state !== 'ground' || ownsLetter(w, p, c.letter)) continue;
-      if (Math.hypot(c.x - w.fog.x, c.y - w.fog.y) > w.fog.r) continue;
-      const d = Math.hypot(c.x - p.x, c.y - p.y);
-      if (d < dBest) {
-        dBest = d;
-        target = c;
-      }
-    }
+    // 4) Wander inside the safe circle when there is nothing to collect.
+    let target: { x: number; y: number } | null = pickup;
     brain.wanderT -= dt;
     if (!target) {
       if (brain.wanderT <= 0 || Math.hypot(brain.wanderX - p.x, brain.wanderY - p.y) < 80) {
@@ -152,16 +168,35 @@ export function botInput(w: World, id: number, brain: BotBrain): PlayerInput {
     }
     const d = Math.hypot(target.x - p.x, target.y - p.y);
     if (d > 5) {
-      vx += ((target.x - p.x) / d) * 1.2;
-      vy += ((target.y - p.y) / d) * 1.2;
+      const k = pickup ? 2.4 : 1.2;
+      vx += ((target.x - p.x) / d) * k;
+      vy += ((target.y - p.y) / d) * k;
+    }
+  }
+  // While fighting or fleeing, still lean toward a letter that is close by.
+  if (pickup && (enemy && form)) {
+    const d = Math.hypot(pickup.x - p.x, pickup.y - p.y);
+    if (d > 5 && d < 500) {
+      vx += ((pickup.x - p.x) / d) * 1.4;
+      vy += ((pickup.y - p.y) / d) * 1.4;
     }
   }
 
-  // Quantize to 8-way arrow keys.
-  const len = Math.hypot(vx, vy);
+  // Smooth the steering, then quantize to 8-way arrow keys with hysteresis (no flicker at thresholds).
+  const sm = 0.25;
+  brain.sx += (vx - brain.sx) * sm;
+  brain.sy += (vy - brain.sy) * sm;
+  const len = Math.hypot(brain.sx, brain.sy);
   if (len > 0.05) {
-    inp.mx = Math.abs(vx / len) > 0.38 ? Math.sign(vx) : 0;
-    inp.my = Math.abs(vy / len) > 0.38 ? Math.sign(vy) : 0;
+    const ax = Math.abs(brain.sx / len);
+    const ay = Math.abs(brain.sy / len);
+    brain.mx = ax > (brain.mx ? 0.3 : 0.45) ? Math.sign(brain.sx) : 0;
+    brain.my = ay > (brain.my ? 0.3 : 0.45) ? Math.sign(brain.sy) : 0;
+    inp.mx = brain.mx;
+    inp.my = brain.my;
+  } else {
+    brain.mx = 0;
+    brain.my = 0;
   }
 
   // 5) Switch letters now and then, picking the best one for the situation.

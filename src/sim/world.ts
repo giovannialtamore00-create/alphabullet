@@ -227,7 +227,7 @@ function fire(w: World): void {
     const pose = glyphPose(p);
     p.fireTimer -= DT;
     while (p.fireTimer <= 0) {
-      p.fireTimer += 1 / (b.rate * (p.fx.jet > 0 ? JET.fireMul : 1));
+      p.fireTimer += 1 / (p.fx.xray > 0 ? XRAY.rate : b.rate * (p.fx.jet > 0 ? JET.fireMul : 1));
       let sx = 0;
       let sy = 0;
       const boldR = w.copies[p.active].bold ? BOLD.bulletRadiusMul : 1;
@@ -251,7 +251,8 @@ function fire(w: World): void {
             vx: e.pellets > 1 ? Math.cos(ang) * sp : edx * sp,
             vy: e.pellets > 1 ? Math.sin(ang) * sp : edy * sp,
             r: b.radius * boldR * (p.fx.chunky > 0 ? CHUNKY.bulletMul : 1) * (laser ? XRAY.radiusMul : 1),
-            dmg: (b.dmg * e.dmgMul) / e.pellets,
+            // XRAY fires XRAY.rate times a second: scale so the ray deals XRAY.dmgMul x the letter's normal damage per second.
+            dmg: ((b.dmg * e.dmgMul) / e.pellets) * (laser ? (XRAY.dmgMul * b.rate) / XRAY.rate : 1),
             life: laser ? (MAP_SIZE * 1.5) / sp : e.range / b.speed,
             capital: form.capital,
             pierce: p.fx.pierce > 0 || laser,
@@ -286,7 +287,7 @@ function zapChain(w: World, b: Bullet, from: Target): void {
   const pts: number[] = [];
   let cx = from.x;
   let cy = from.y;
-  for (let jump = 0; jump < ZAP.jumps; jump++) {
+  for (let jump = 0; jump < ZAP.maxJumps; jump++) {
     let best: Target | null = null;
     let bestD = ZAP.range;
     const cands: Target[] = [];

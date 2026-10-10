@@ -1,4 +1,4 @@
-import { CHUNKY, FREEZE, JET, PLAYER_HP, SPEED, SPIN, XP } from './config';
+import { CHUNKY, FREEZE, JET, PLAYER_HP, SHIELD, SPEED, SPIN, XP } from './config';
 import { getForm, shieldCovers, type DerivedForm } from './glyphDerive';
 import type { LetterCopy, Mob, Player, World } from './types';
 
@@ -116,6 +116,7 @@ export function damagePlayer(
         const absorbed = Math.min(amount, p.shieldBudget);
         p.shieldBudget -= absorbed;
         amount -= absorbed;
+        p.hp = Math.min(p.maxHp, p.hp + absorbed * SHIELD.healFrac); // blocking heals
         creditXp(w, p.id, p.active, absorbed * XP.perDamage); // blocked damage levels up the shield letter
         w.events.push({ t: 'shieldBlock', id: p.id, x: sx, y: sy, amount: absorbed, angle });
       }

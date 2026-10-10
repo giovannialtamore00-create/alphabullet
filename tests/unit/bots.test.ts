@@ -51,6 +51,30 @@ describe('bots', () => {
     expect(c.owner).toBe(2);
   });
 
+  it('head for a far letter smoothly (few direction changes)', () => {
+    const w = testWorld(4);
+    isolate(w);
+    w.fog.timer = 1e9;
+    const b = w.players[2];
+    const c = w.copies.find((k) => k.state === 'pool' && !b.letters.some((id) => w.copies[id].letter === k.letter))!;
+    c.state = 'ground';
+    c.x = b.x + 600;
+    c.y = b.y + 300;
+    const brains = new Map<number, BotBrain>();
+    let flips = 0;
+    let last = '';
+    for (let i = 0; i < 500 && c.owner !== 2; i++) {
+      const inputs = botInputs(w, brains);
+      const key = `${inputs[2].mx},${inputs[2].my}`;
+      if (last && key !== last) flips++;
+      last = key;
+      step(w, inputs);
+    }
+    expect(c.owner).toBe(2);
+    expect(flips).toBeLessThan(12);
+    console.log('direction changes:', flips);
+  });
+
   it('use CAPITAL power and fight a nearby enemy', () => {
     const w = testWorld(4);
     isolate(w);

@@ -1,7 +1,6 @@
 /** Word powers: type a word whose letters you all own to trigger its effect. Pure: no DOM. */
 import { BOMB, BOUNCE, CHUNKY, DASH, DISARM, ERASE, EXILE, FLIP, JET, FREEZE, LIFE, MAGNET, MAP_SIZE, MAX_PASSIVES, PIERCE, PUSH, PVP_DAMAGE_MUL, SPEED, SPIN, SPLASH, VOID, WORD_IMMUNITY, XP, XRAY, ZAP } from './config';
 import { creditXp, damageMob, damagePlayer } from './combat';
-import { findSpot } from './letters';
 import type { Player, TimedFx, World } from './types';
 
 type Effect = (w: World, p: Player) => void;
@@ -90,9 +89,24 @@ const EFFECTS = {
   exile: (w, p) => {
     for (const q of w.players) {
       if (q === p || !q.alive || Math.abs(q.x - p.x) > EXILE.halfW || Math.abs(q.y - p.y) > EXILE.halfH) continue;
-      const spot = findSpot(w, [{ x: p.x, y: p.y, d: EXILE.minDist }]);
-      q.x = spot.x;
-      q.y = spot.y;
+      // Anywhere in the safe circle, or up to EXILE.fogReach of its radius into the fog; as far from the caster as possible.
+      const reach = w.fog.r * (1 + EXILE.fogReach);
+      let best = { x: w.fog.x, y: w.fog.y };
+      let bestD = -Infinity;
+      for (let i = 0; i < 40; i++) {
+        const ang = w.rng.next() * Math.PI * 2;
+        const rad = Math.sqrt(w.rng.next()) * reach;
+        const x = Math.min(MAP_SIZE - 20, Math.max(20, w.fog.x + Math.cos(ang) * rad));
+        const y = Math.min(MAP_SIZE - 20, Math.max(20, w.fog.y + Math.sin(ang) * rad));
+        const d = Math.hypot(x - p.x, y - p.y);
+        if (d > bestD) {
+          bestD = d;
+          best = { x, y };
+        }
+        if (d >= EXILE.minDist) break;
+      }
+      q.x = best.x;
+      q.y = best.y;
     }
   },
   /** The X letter (switched to in applyInput) fires piercing lasers. */
@@ -115,7 +129,7 @@ export const WORDS: WordDef[] = [
   { word: 'PUSH', cooldown: PUSH.cooldown, effect: 'push' },
   { word: 'BOUNCE', cooldown: BOUNCE.cooldown, effect: 'bounce', passive: true },
   { word: 'FREEZE', cooldown: FREEZE.cooldown, effect: 'freeze', passive: true },
-  { word: 'ERASE', cooldown: ERASE.cooldown, effect: 'erase', passive: true },
+  { word: 'ERASE', cooldown: ERASE.cooldown, effect: 'erase' },
   { word: 'VOID', cooldown: VOID.cooldown, effect: 'void' },
   { word: 'SQUIRT', cooldown: SPLASH.cooldown, effect: 'splash' },
   { word: 'DISARM', cooldown: DISARM.cooldown, effect: 'disarm', passive: true },
@@ -132,7 +146,7 @@ export const WORDS: WordDef[] = [
 ];
 
 /** Fx timer length that a passive keeps refilling (SPIN needs the full cycle to keep its rotation smooth). */
-const PASSIVE_LEN: Partial<Record<TimedFx, number>> = { pierce: PIERCE.duration, bounce: BOUNCE.duration, freeze: FREEZE.duration, erase: ERASE.duration, disarm: DISARM.duration, speed: SPEED.duration, zap: ZAP.duration, spin: SPIN.duration, flip: FLIP.duration, magnet: MAGNET.duration, chunky: CHUNKY.duration };
+const PASSIVE_LEN: Partial<Record<TimedFx, number>> = { pierce: PIERCE.duration, bounce: BOUNCE.duration, freeze: FREEZE.duration, disarm: DISARM.duration, speed: SPEED.duration, zap: ZAP.duration, spin: SPIN.duration, flip: FLIP.duration, magnet: MAGNET.duration, chunky: CHUNKY.duration };
 
 /** Keep the fx timer of every owned passive full; passives whose word is no longer owned are off. Called each tick. */
 export function refreshPassives(w: World, p: Player): void {

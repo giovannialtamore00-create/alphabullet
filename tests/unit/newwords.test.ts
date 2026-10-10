@@ -148,7 +148,7 @@ describe('new word powers', () => {
     expect(w.voids.length).toBe(0);
   });
 
-  it('DISARM stops the hit player firing for 2 s and does not stack', () => {
+  it('DISARM stops the hit player firing for DISARM.lock (0.3 s) and does not stack', () => {
     const w = setup();
     const q = w.players[1];
     shot(w, 0, q.x - 40, q.y, 540, 0, { disarm: true });
@@ -159,7 +159,7 @@ describe('new word powers', () => {
     expect(q.disarmT).toBeLessThanOrEqual(DISARM.lock);
     w.bullets = [];
     q.fireTimer = 0;
-    run(w, 10);
+    run(w, 5);
     expect(w.bullets.some((b) => b.owner === 1)).toBe(false);
     run(w, Math.ceil(DISARM.lock * 30));
     expect(q.disarmT).toBe(0);

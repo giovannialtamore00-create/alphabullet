@@ -61,3 +61,9 @@
 
 ## M22: passive word powers (needs playtest)
 - See DECISIONS.md M22. Tests in tests/unit/passives.test.ts. Synced online via the snapshot tail (protocol.ts).
+
+## M23: bot fluidity + word tweaks (needs playtest)
+- Bots: smoothed steering + hysteresis on 8-way keys, always pick a sticky letter target, lean toward letters while fighting (src/sim/bots.ts).
+- DISARM lock 0.3s. ZAP chains until no new target in range (cap 50). EXILE may land up to 20% of safe radius into fog. XRAY 5s, continuous ray (30 shots/s), 2x DPS. Shield blocks heal 1:1 (SHIELD.healFrac). ERASE now active: 12s, 45s cooldown (no passive slot).
+- Tests: tests/unit/wordtweaks.test.ts, bots.test.ts; 125 unit tests pass.
+- Open: playtest all of the above; tune SHIELD.healFrac, XRAY ray look, bot letter pull.
