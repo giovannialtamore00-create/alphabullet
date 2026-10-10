@@ -118,8 +118,10 @@ export const MOB_SPAWN_EARLY_MUL = 1.3;
 export const MOB_SPAWN_LATE_MUL = 0.7;
 export const MOB_SPAWN_LATE_AT = 600;
 export const mobPhaseMul = (t: number) => MOB_SPAWN_EARLY_MUL + (MOB_SPAWN_LATE_MUL - MOB_SPAWN_EARLY_MUL) * Math.min(1, Math.max(0, t / MOB_SPAWN_LATE_AT));
-/** Flat rate, no escalation over time (patch). */
-export const mobSpawnRate = (_t: number) => MOB_SPAWN_MUL * MOB_SPAWN_EARLY_MUL * 0.75 * 2;
+/** Starts at the full rate, drops 3% (compounding) every 15 s and stays fixed from 4 minutes on (M21). */
+export const MOB_SPAWN_DECAY = { step: 0.97, every: 15, until: 240 };
+export const mobSpawnRate = (t: number) =>
+  MOB_SPAWN_MUL * MOB_SPAWN_EARLY_MUL * 0.75 * 2 * MOB_SPAWN_DECAY.step ** Math.floor(Math.min(t, MOB_SPAWN_DECAY.until) / MOB_SPAWN_DECAY.every);
 /** Weight of [slender, medium, chunky] at time t. */
 export const mobTierWeights = (t: number): [number, number, number] => [
   Math.max(2, 6 - t / 120) * 1.3, // +30% small mobs

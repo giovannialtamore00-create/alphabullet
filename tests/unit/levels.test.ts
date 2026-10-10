@@ -108,7 +108,14 @@ describe('mobs', () => {
     expect([MOB_TIERS.slender.dmg, MOB_TIERS.medium.dmg, MOB_TIERS.chunky.dmg]).toEqual([2, 3, 5]);
   });
 
- it('spawn rate is flat over time', () => { expect(mobSpawnRate(600)).toBeCloseTo(mobSpawnRate(0)); expect(mobSpawnRate(0)).toBeCloseTo(2 * 3.4 * 1.3 * 0.75); });
+ it('spawn rate drops 3% every 15s and is fixed from 4 minutes', () => {
+    const r0 = mobSpawnRate(0);
+    expect(r0).toBeCloseTo(2 * 3.4 * 1.3 * 0.75);
+    expect(mobSpawnRate(14)).toBeCloseTo(r0);
+    expect(mobSpawnRate(15)).toBeCloseTo(r0 * 0.97);
+    expect(mobSpawnRate(240)).toBeCloseTo(r0 * 0.97 ** 16);
+    expect(mobSpawnRate(900)).toBeCloseTo(mobSpawnRate(240));
+  });
 
   it('early match spawns +30%, late match -30%', () => {
     expect(mobPhaseMul(0)).toBeCloseTo(1.3);

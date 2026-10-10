@@ -55,3 +55,6 @@
 ## M20 patch (2026-10-10, needs playtest)
 - Lowercase B/D shoot from stem ends (capital B/D and O silent). Letter draw: owned letters weighted 1/(1+2*owned); G/J/V/W (<=1 word) x0.85. Mob spawn x2 again (MOB_SPAWN_MUL 3.4). Global mob cap = 60 per 1600x900 of min(map, fog circle) area; per-player 60 kept; old 300 cap removed.
 - 114 unit tests pass.
+
+## M21: mob spawn decay (needs playtest)
+- Mob spawn rate drops 3% (compounding) every 15 s, fixed from 4 min (about 61% of start). `MOB_SPAWN_DECAY` in config.ts.
