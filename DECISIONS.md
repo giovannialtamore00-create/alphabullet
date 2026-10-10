@@ -115,3 +115,5 @@ Every judgment call, newest at the bottom. Format: `- [M<n>] decision. Why.`
 - Walking over a ground letter you already own starts a 3 s shuffle (config SHUFFLE.time, PLACEHOLDER). It then becomes a pool letter you lack; you must step off and onto it to collect (lockFor, host only). Other players can still take the original while it shuffles.
 - Pick order: letters of words you are already building > any word letter > any missing letter (letters.ts pickMissing). If you own everything left, the duplicate stays.
 - The old copy returns to the pool with XP reset (copies are fixed per letter, so the swap is a pool exchange). Snapshot field a[12] = shuffle timer (optional, no NET_VERSION bump). Renderer flickers random letters while shuffling.
+
+- XP levels 3/4 (patch): per-letter XP keeps counting after CAPITAL. Lv3 at 2400 XP = +15% bullet damage, Lv4 at 4000 XP = +20% fire rate (placeholders, derived from copy XP so they travel with the letter). PLAYER_SPEED 374 -> 393 (+5%). Needs playtest.

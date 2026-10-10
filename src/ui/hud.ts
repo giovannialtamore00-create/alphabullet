@@ -7,7 +7,15 @@ import { WORDS } from '../sim/words';
 
 /** Progress (0..1) toward the copy's next level. */
 const levelProgress = (c: LetterCopy) =>
-  c.upgraded ? 1 : c.bold ? Math.min(1, (c.xp - XP.threshold) / (XP.capitalThreshold - XP.threshold)) : Math.min(1, c.xp / XP.threshold);
+  c.xp >= XP.rateThreshold
+    ? 1
+    : c.xp >= XP.damageThreshold
+      ? (c.xp - XP.damageThreshold) / (XP.rateThreshold - XP.damageThreshold)
+      : c.upgraded
+        ? (c.xp - XP.capitalThreshold) / (XP.damageThreshold - XP.capitalThreshold)
+        : c.bold
+          ? Math.min(1, (c.xp - XP.threshold) / (XP.capitalThreshold - XP.threshold))
+          : Math.min(1, c.xp / XP.threshold);
 import { INK, strokeGlyph } from '../render/glyphCanvas';
 
 const fmt = (s: number) => {
@@ -175,9 +183,13 @@ export class Hud {
       return;
     }
     this.xpFill.style.width = `${levelProgress(c) * 100}%`;
-    this.xpText.textContent = c.upgraded
-      ? `${c.letter} CAPITAL unlocked (max level)`
-      : c.bold
+    this.xpText.textContent = c.xp >= XP.rateThreshold
+      ? `Lv4 ${c.letter} - max level (+15% damage, +20% fire rate)`
+      : c.xp >= XP.damageThreshold
+        ? `Lv3 ${c.letter} +15% damage - XP ${Math.floor(c.xp)} / ${XP.rateThreshold} to +20% fire rate`
+        : c.upgraded
+          ? `Lv2 ${c.letter} CAPITAL - XP ${Math.floor(c.xp)} / ${XP.damageThreshold} to +15% damage`
+          : c.bold
         ? `Lv1 ${c.letter} BOLD - XP ${Math.floor(c.xp)} / ${XP.capitalThreshold} to CAPITAL`
         : `Lv0 ${c.letter.toLowerCase()} - XP ${Math.floor(c.xp)} / ${XP.threshold} to BOLD`;
     if (!c.upgraded) this.capInfo.textContent = 'CAPITAL locked - earn XP with this letter';

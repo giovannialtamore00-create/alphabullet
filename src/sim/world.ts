@@ -25,7 +25,7 @@ import {
   XRAY,
   ZAP,
 } from './config';
-import { activeCopy, activeForm, addSlow, bodyMul, creditXp, damageMob, damagePlayer, glyphPose, playerRadius, posePoint, selectLetter, speedMul } from './combat';
+import { activeCopy, activeForm, addSlow, bodyMul, creditXp, damageMob, damagePlayer, glyphPose, playerRadius, posePoint, selectLetter, speedMul, xpDamageMul, xpRateMul } from './combat';
 import { createFog, updateFog } from './fog';
 import { refreshPassives, useWord } from './words';
 
@@ -227,7 +227,7 @@ function fire(w: World): void {
     const pose = glyphPose(p);
     p.fireTimer -= DT;
     while (p.fireTimer <= 0) {
-      p.fireTimer += 1 / (p.fx.xray > 0 ? XRAY.rate : b.rate * (p.fx.jet > 0 ? JET.fireMul : 1));
+      p.fireTimer += 1 / (p.fx.xray > 0 ? XRAY.rate : b.rate * (p.fx.jet > 0 ? JET.fireMul : 1) * xpRateMul(w.copies[p.active]));
       let sx = 0;
       let sy = 0;
       const boldR = w.copies[p.active].bold ? BOLD.bulletRadiusMul : 1;
@@ -252,7 +252,7 @@ function fire(w: World): void {
             vy: e.pellets > 1 ? Math.sin(ang) * sp : edy * sp,
             r: b.radius * boldR * (p.fx.chunky > 0 ? CHUNKY.bulletMul : 1) * (laser ? XRAY.radiusMul : 1),
             // XRAY fires XRAY.rate times a second: scale so the ray deals XRAY.dmgMul x the letter's normal damage per second.
-            dmg: ((b.dmg * e.dmgMul) / e.pellets) * (laser ? (XRAY.dmgMul * b.rate) / XRAY.rate : 1),
+            dmg: ((b.dmg * xpDamageMul(w.copies[p.active]) * e.dmgMul) / e.pellets) * (laser ? (XRAY.dmgMul * b.rate) / XRAY.rate : 1),
             life: laser ? (MAP_SIZE * 1.5) / sp : e.range / b.speed,
             capital: form.capital,
             pierce: p.fx.pierce > 0 || laser,

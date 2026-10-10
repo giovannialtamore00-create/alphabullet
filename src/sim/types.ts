@@ -159,6 +159,7 @@ export type SimEvent =
   | { t: 'pickup'; id: number; letter: string; x: number; y: number }
   | { t: 'switch'; id: number; letter: string }
   | { t: 'upgrade'; id: number; letter: string }
+  | { t: 'levelup'; id: number; letter: string; level: 3 | 4 }
   | { t: 'bold'; id: number; letter: string }
   | { t: 'capital'; id: number; letter: string; on: boolean }
   | { t: 'shieldBlock'; id: number; x: number; y: number; amount: number; angle: number }

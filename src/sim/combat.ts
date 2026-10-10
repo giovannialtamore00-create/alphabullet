@@ -78,20 +78,27 @@ export function selectLetter(w: World, p: Player, id: number): void {
   p.maxHp = copyMaxHp(c);
 }
 
-/** Add XP to the copy that dealt damage, if its owner still holds it. Level 1 = BOLD, level 2 = CAPITAL. */
+/** Level 3 / 4 bonuses, derived from the copy's XP (they travel with the letter). */
+export const xpDamageMul = (c: LetterCopy): number => (c.xp >= XP.damageThreshold ? XP.damageMul : 1);
+export const xpRateMul = (c: LetterCopy): number => (c.xp >= XP.rateThreshold ? XP.rateMul : 1);
+
+/** Add XP to the copy that dealt damage, if its owner still holds it. Level 1 = BOLD, 2 = CAPITAL, 3 = +damage, 4 = +fire rate. */
 export function creditXp(w: World, attacker: number | null, copyId: number | null, amount: number): void {
   if (attacker === null || copyId === null) return;
   const c = w.copies[copyId];
-  if (!c || c.owner !== attacker || c.upgraded) return;
+  if (!c || c.owner !== attacker || c.xp >= XP.rateThreshold) return;
+  const before = c.xp;
   c.xp += amount;
   if (!c.bold && c.xp >= XP.threshold) {
     c.bold = true;
     w.events.push({ t: 'bold', id: attacker, letter: c.letter });
   }
-  if (c.bold && c.xp >= XP.capitalThreshold) {
+  if (!c.upgraded && c.bold && c.xp >= XP.capitalThreshold) {
     c.upgraded = true;
     w.events.push({ t: 'upgrade', id: attacker, letter: c.letter });
   }
+  if (before < XP.damageThreshold && c.xp >= XP.damageThreshold) w.events.push({ t: 'levelup', id: attacker, letter: c.letter, level: 3 });
+  if (before < XP.rateThreshold && c.xp >= XP.rateThreshold) w.events.push({ t: 'levelup', id: attacker, letter: c.letter, level: 4 });
 }
 
 /**

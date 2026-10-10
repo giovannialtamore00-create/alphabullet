@@ -215,6 +215,9 @@ export class Game {
         case 'upgrade':
           if (e.id === me) this.hud.toast(`${e.letter} upgraded! Press SHIFT for CAPITAL ${e.letter}`, true);
           break;
+        case 'levelup':
+          if (e.id === me) this.hud.toast(e.level === 3 ? `${e.letter} level 3: +15% damage` : `${e.letter} level 4: +20% fire rate`, true);
+          break;
         case 'playerDeath': {
           const victim = w.players[e.id];
           const killer = e.by !== null ? w.players[e.by] : null;

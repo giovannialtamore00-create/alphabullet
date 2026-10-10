@@ -74,3 +74,7 @@
 - Open: playtest all of the above; tune SHIELD.healFrac, XRAY ray look, bot letter pull.
 
 - Wave/fog pacing patch: waves 5 s sooner in first 2 min, fog stages 2+ 20% slower. Built, tsc + 125 tests pass, needs playtest, not committed.
+
+## M28: XP levels 3/4 + speed (needs playtest)
+- Lv3 (2400 XP) +15% damage, Lv4 (4000 XP) +20% fire rate, derived from copy XP (combat.ts xpDamageMul/xpRateMul). PLAYER_SPEED 393 (+5%). Test: tests/unit/xpLevels.test.ts; 130 tests pass.
+- Open: playtest; tune thresholds in XP (config.ts).

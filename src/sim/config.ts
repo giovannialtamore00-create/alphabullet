@@ -7,7 +7,7 @@ export const MAP_EDGE_SOFT = 150; // px of soft push-back near the map edge
 export const MAX_PLAYERS = 8;
 
 export const PLAYER_HP = 100;
-export const PLAYER_SPEED = 374; // +10% (patch)
+export const PLAYER_SPEED = 393; // +10% (patch), +5% (patch)
 export const SWITCH_COOLDOWN = 0.5;
 export const START_LETTERS = 2;
 export const PICKUP_RADIUS = 26;
@@ -74,6 +74,10 @@ export const SHUFFLE = { time: 3 };
 export const XP = {
   threshold: 400, // level 1: BOLD
   capitalThreshold: 1200, // level 2: CAPITAL unlocked (PLACEHOLDER: total XP)
+  damageThreshold: 2400, // level 3: +15% damage (PLACEHOLDER: total XP)
+  damageMul: 1.15,
+  rateThreshold: 4000, // level 4: +20% fire rate (PLACEHOLDER: total XP)
+  rateMul: 1.2,
   perDamage: 1.25, // +25% (patch), applies to every XP source
   mobKill: 7.5,
   playerKill: 150,
