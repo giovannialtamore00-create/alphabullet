@@ -198,11 +198,34 @@ export function updatePickups(w: World): void {
         }
         continue;
       }
-      giveCopy(w, p, c);
+      let got = c;
+      if (c.shuffle > 0) {
+        // Grabbed mid-shuffle: the picker gets a random letter they lack, not the one shown.
+        const lack = w.copies.filter((k) => k.state === 'pool' && !ownsLetter(w, p, k.letter));
+        if (lack.length) {
+          got = lack[Math.floor(w.rng.next() * lack.length)];
+          got.x = c.x;
+          got.y = c.y;
+          toPool(c);
+        }
+      }
+      giveCopy(w, p, got);
       p.lettersCollected++;
-      w.events.push({ t: 'pickup', id: p.id, letter: c.letter, x: c.x, y: c.y });
+      w.events.push({ t: 'pickup', id: p.id, letter: got.letter, x: got.x, y: got.y });
     }
   }
+}
+
+/** Return a copy to the pool, fresh (no XP, no shuffle). */
+function toPool(c: LetterCopy): void {
+  c.state = 'pool';
+  c.idle = 0;
+  c.shuffle = 0;
+  c.xp = 0;
+  c.upgraded = false;
+  c.bold = false;
+  c.capitalCd = 0;
+  c.hp = PLAYER_HP;
 }
 
 /** Pool copy of a letter `p` is missing: first letters of words `p` is already building, then any word letter, then any. */
@@ -244,13 +267,7 @@ export function updateShuffle(w: World, dt: number): void {
     n.x = c.x;
     n.y = c.y;
     n.lockFor = p.id;
-    c.state = 'pool';
-    c.idle = 0;
-    c.xp = 0;
-    c.upgraded = false;
-    c.bold = false;
-    c.capitalCd = 0;
-    c.hp = PLAYER_HP;
+    toPool(c);
   }
 }
 
@@ -269,13 +286,7 @@ export function updateDropDecay(w: World, dt: number): void {
     if (c.state !== 'ground' || c.wave) continue;
     c.idle += dt;
     if (c.idle < DROP_DECAY.wait + DROP_DECAY.flash) continue;
-    c.state = 'pool';
-    c.idle = 0;
-    c.xp = 0;
-    c.upgraded = false;
-    c.bold = false;
-    c.capitalCd = 0;
-    c.hp = PLAYER_HP;
+    toPool(c);
   }
 }
 

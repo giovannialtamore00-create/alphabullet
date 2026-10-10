@@ -35,3 +35,26 @@ describe('duplicate letter shuffle', () => {
     expect(p.letters.length).toBe(owned + 1);
   });
 });
+
+describe('grabbing a shuffling letter', () => {
+  it('gives the other player a random letter they lack, not the shown one', () => {
+    const w = testWorld(6);
+    isolate(w);
+    for (const ch of 'BO') debugGiveLetter(w, 0, ch);
+    const dup = w.copies.find((c) => c.state === 'pool' && c.letter === 'B')!;
+    dup.state = 'ground';
+    dup.wave = true;
+    dup.x = w.players[0].x;
+    dup.y = w.players[0].y;
+    step(w, { 0: NO_INPUT });
+    expect(dup.shuffle).toBeGreaterThan(0);
+    const q = w.players[1];
+    const before = q.letters.length;
+    q.x = dup.x;
+    q.y = dup.y;
+    step(w, { 0: NO_INPUT });
+    expect(dup.state).toBe('pool');
+    expect(q.letters.length).toBe(before + 1);
+    expect(w.copies[q.letters[before]].shuffle).toBe(0);
+  });
+});
