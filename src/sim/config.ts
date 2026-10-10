@@ -19,9 +19,9 @@ export const CAP_SIZE = 74;
 export const BULLET = {
   speed: 540,
   life: 1.0, // fallback only; real range comes from stroke length (rangePerUnit)
-  rangePerUnit: 1000, // px of range per unit of stroke arm length
-  minRange: 140,
-  maxRange: 1000,
+  rangePerUnit: 1250, // px of range per unit of stroke arm length (x1.25 patch)
+  minRange: 175, // x1.25 patch
+  maxRange: 1250, // x1.25 patch
   capitalRangeMul: 1.2,
   radius: 5,
   baseDps: 73.008, // total damage/sec of a 1-emitter lowercase letter (46.8 x1.3 balance patch, then x1.2)
