@@ -3,6 +3,7 @@
  * so the sim cannot tell bots and humans apart.
  */
 import { activeCopy, activeForm } from './combat';
+import { SPLASH } from './config';
 import { getForm } from './glyphDerive';
 import { ownsLetter } from './letters';
 import { Rng } from './rng';
@@ -49,7 +50,7 @@ function letterScore(w: World, p: Player, copyId: number, mobsNear: number, enem
   if (enemyNear) s += f.bullet.dmg * 3; // focus vs players
   if (p.hp < 40 && f.shieldCap > 0) s += 40;
   if (c.upgraded && c.capitalCd <= 0) s += 25;
-  if (c.bold) s += 30;
+  if (c.bold) s += 15;
   return s;
 }
 
@@ -87,7 +88,7 @@ export function botInput(w: World, id: number, brain: BotBrain): PlayerInput {
 
   // 3) Fight the nearest enemy: move so an emitter points at them ("aim by moving").
   let enemy: Player | null = null;
-  let dEnemy = ENEMY_RANGE;
+  let dEnemy = p.splashT > 0 ? ENEMY_RANGE * SPLASH.botSight : ENEMY_RANGE; // inked bots see less
   for (const o of w.players) {
     if (o === p || !o.alive) continue;
     const d = Math.hypot(o.x - p.x, o.y - p.y);

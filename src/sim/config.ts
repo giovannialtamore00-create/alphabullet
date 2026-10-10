@@ -7,7 +7,7 @@ export const MAP_EDGE_SOFT = 150; // px of soft push-back near the map edge
 export const MAX_PLAYERS = 8;
 
 export const PLAYER_HP = 100;
-export const PLAYER_SPEED = 340;
+export const PLAYER_SPEED = 374; // +10% (patch)
 export const SWITCH_COOLDOWN = 0.5;
 export const START_LETTERS = 2;
 export const PICKUP_RADIUS = 26;
@@ -24,7 +24,7 @@ export const BULLET = {
   maxRange: 1000,
   capitalRangeMul: 1.2,
   radius: 5,
-  baseDps: 46.8, // total damage/sec of a 1-emitter lowercase letter (36 x1.3, playtest 3)
+  baseDps: 60.84, // total damage/sec of a 1-emitter lowercase letter (46.8 x1.3, balance patch)
   perExtraEmitterDps: 0, // every letter deals the same total; split evenly between emitters
   baseRate: 6, // shots/sec for 1 emitter; divided by sqrt(emitters)
   shieldLetterDpsMul: 0.4,
@@ -47,33 +47,37 @@ export const SHIELD = {
 };
 
 /** Bullets hurt players less than mobs, so duels last a few seconds and matches reach the late fog. */
-export const PVP_DAMAGE_MUL = 0.5;
+export const PVP_DAMAGE_MUL = 0.6; // +20% (patch)
 
 export const COPIES_PER_LETTER = 2;
+/** Vowels that show up more: 4 copies each and a 15% higher chance when a letter is drawn. */
+export const VOWELS = ['O', 'A', 'I', 'E'];
+export const VOWEL_COPIES = 4;
+export const VOWEL_WEIGHT = 1.15;
+/** Every `every` seconds `count` pool letters appear on the map, up to `groundCap` lying on the ground. */
+export const LETTER_SPAWN = { every: 10, count: 3, groundCap: 16 }; // groundCap PLACEHOLDER
 export const GROUND_LETTERS = 8;
 export const PLAYER_LIVES = 3; // deaths allowed; each one costs the active letter, the last eliminates
 /** Seconds of invulnerability after a letter-loss respawn. */
 export const SPAWN_PROTECTION = 2; // PLACEHOLDER
-export const RESPAWN_THRESHOLD = 4; // wave refills once this many (or fewer) remain
-export const RESPAWN_DELAY = 120;
 export const RESPAWN_MIN_DIST_FROM_OLD = 700;
 export const DROP_SCATTER = 110;
 
 export const XP = {
-  threshold: 400, // level 1: CAPITAL unlocked
-  boldThreshold: 1200, // level 2: BOLD (PLACEHOLDER: total XP, not given in spec)
+  threshold: 400, // level 1: BOLD
+  capitalThreshold: 1200, // level 2: CAPITAL unlocked (PLACEHOLDER: total XP)
   perDamage: 1,
   mobKill: 6,
   playerKill: 120,
   letterBreak: 60, // breaking a letter (the victim loses a life but respawns). PLACEHOLDER
 };
 
-export const CAPITAL_DURATION = 20;
+export const CAPITAL_DURATION = 13; // was 20, -35% (patch)
 export const CAPITAL_COOLDOWN = 45;
 /** Activating CAPITAL grants temporary HP = this x max HP, removed when CAPITAL ends. */
 export const CAPITAL_TEMP_HP_FRAC = 0.5;
-/** Level 2 BOLD letters: permanent +30% max HP and damage while active (both forms). */
-export const BOLD = { hpMul: 1.3, dmgMul: 1.3 };
+/** Level 1 BOLD letters: 25% bigger bullets, nothing else. */
+export const BOLD = { bulletRadiusMul: 1.25 };
 /** Each mob kill heals this fraction of max HP. */
 export const MOB_KILL_HEAL_FRAC = 0.005;
 /** Spawn-rate multiplier for players near a letter lying on the ground. */
@@ -99,7 +103,7 @@ export const MOB_CAP_TOTAL = 300;
 export const MOB_SPAWN_DIST: [number, number] = [1050, 1300];
 export const MOB_DESPAWN_DIST = 2600;
 /** Spawns/sec per alive player at time t (seconds): +15% per minute, compounding (playtest 4). */
-export const MOB_SPAWN_GROWTH_PER_MIN = 1.15;
+export const MOB_SPAWN_GROWTH_PER_MIN = 1.18; // was 1.15, escalation +20% (patch)
 export const MOB_SPAWN_RATE_CAP = 3; // PLACEHOLDER: per-player cap, reached at ~11.5 min
 export const mobSpawnRate = (t: number) => Math.min(MOB_SPAWN_RATE_CAP, 0.75 * MOB_SPAWN_GROWTH_PER_MIN ** (t / 60));
 /** Weight of [slender, medium, chunky] at time t. */
@@ -119,12 +123,12 @@ export interface FogStage {
 export const FOG_START_RADIUS = MAP_SIZE * 0.72;
 export const FOG_STAGES: FogStage[] = [
   // dps x1.5 in playtest 4 (was 2, 3, 5, 8, 12, 20)
-  { wait: 120, shrink: 60, radius: 3200, dps: 3 },
-  { wait: 90, shrink: 50, radius: 1800, dps: 4.5 },
-  { wait: 75, shrink: 40, radius: 900, dps: 7.5 },
-  { wait: 60, shrink: 30, radius: 400, dps: 12 },
-  { wait: 45, shrink: 30, radius: 150, dps: 18 },
-  { wait: 30, shrink: 30, radius: 0, dps: 30 },
+  { wait: 156, shrink: 60, radius: 3200, dps: 3 },
+  { wait: 117, shrink: 50, radius: 1800, dps: 4.5 },
+  { wait: 97.5, shrink: 40, radius: 900, dps: 7.5 },
+  { wait: 78, shrink: 30, radius: 400, dps: 12 },
+  { wait: 58.5, shrink: 30, radius: 150, dps: 18 },
+  { wait: 39, shrink: 30, radius: 0, dps: 30 },
 ];
 
 export const SPATIAL_CELL = 128;
@@ -134,3 +138,19 @@ export const WORD_TYPE_WINDOW = 1; // max seconds between typed letters of a wor
 export const PIERCE = { duration: 6, cooldown: 30 };
 export const BOMB = { radius: 300, dmg: 60, cooldown: 25 };
 export const DASH = { dist: 350, cooldown: 8 };
+/** PUSH: everything within `radius` is shoved `dist` px straight away from the caster. PLACEHOLDER numbers. */
+export const PUSH = { radius: 400, dist: 350, cooldown: 15 };
+/** Timed word powers last `duration` seconds. All PLACEHOLDER except the durations the user set. */
+export const BOUNCE = { duration: 8, cooldown: 30, bounces: 2, minLife: 0.35 }; // bounces off targets and map edges
+export const FREEZE = { duration: 8, cooldown: 30, perHit: 0.05, max: 0.2, slowTime: 1.5 };
+export const ERASE = { duration: 8, cooldown: 40, radius: 200 };
+/** Black hole: arms for `arm` s, then pulls for `pull` s; whatever is still inside `radius` is swallowed. */
+export const VOID = { cooldown: 50, arm: 2, pull: 4, radius: 450, pullEdge: 120, pullCore: 800 };
+export const SPLASH = { duration: 5, cooldown: 40, cover: 0.6, botSight: 0.4 };
+export const DISARM = { duration: 8, cooldown: 35, lock: 2 };
+export const SPEED = { duration: 12, cooldown: 30, mul: 1.35 };
+export const LIFE = { cooldown: 60 };
+export const ZAP = { duration: 8, cooldown: 30, range: 170, jumps: 2, dmgMul: 0.5 };
+export const SPIN = { duration: 8, cooldown: 30, revPerSec: 0.5 };
+export const FLIP = { duration: 12, cooldown: 25 };
+export const MAGNET = { duration: 12, cooldown: 30, radius: 1000, speed: 500 };

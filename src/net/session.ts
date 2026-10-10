@@ -19,7 +19,11 @@ interface RemoteClient {
   word: string | null;
   wordBack: string | null;
   left: boolean;
+  token: string; // secret the guest shows to take this slot back
+  away: ReturnType<typeof setTimeout> | null; // grace timer while disconnected
 }
+
+const newToken = () => Array.from({ length: 4 }, () => Math.random().toString(36).slice(2)).join('');
 
 export class HostSession {
   private clients: RemoteClient[] = [];
@@ -27,6 +31,11 @@ export class HostSession {
   private pendingEvents: SimEvent[] = [];
   onLobbyChange: (names: string[]) => void = () => {};
   onClientLeft: (playerId: number) => void = () => {};
+  /** A guest dropped (true) or came back (false); they keep their slot for `graceMs`. */
+  onClientAway: (playerId: number, away: boolean) => void = () => {};
+  graceMs = 30000;
+  private seed = 0;
+  private setup: PlayerSetup[] = [];
 
   constructor(private hostName: string) {}
 
@@ -39,10 +48,25 @@ export class HostSession {
     conn.onMessage((m: ClientMsg) => {
       if (m.t === 'hello') {
         if (m.v !== NET_VERSION) return this.reject(conn, 'Version mismatch: refresh the page.');
+        const back = this.started && m.tok ? this.clients.find((c) => c.token === m.tok && !c.left && c.view.playerId >= 0) : undefined;
+        if (back) {
+          // Rejoin: take the old slot back on the new connection.
+          if (back.away) clearTimeout(back.away);
+          const old = back.conn;
+          back.conn = conn;
+          back.away = null;
+          back.view.sentBullets = new Set();
+          back.view.ack = 0;
+          client = back;
+          old.close();
+          this.onClientAway(back.view.playerId, false);
+          conn.send({ t: 'start', seed: this.seed, players: this.setup, you: back.view.playerId, tok: back.token } satisfies HostMsg);
+          return;
+        }
         if (this.started) return this.reject(conn, 'That match has already started.');
         if (this.names.length >= MAX_HUMANS) return this.reject(conn, 'The room is full.');
         const name = String(m.name || 'Player').slice(0, 14);
-        client = { conn, name, view: { playerId: -1, viewId: -1, sentBullets: new Set(), ack: 0 }, mx: 0, my: 0, switchTo: null, capital: false, word: null, wordBack: null, left: false };
+        client = { conn, name, view: { playerId: -1, viewId: -1, sentBullets: new Set(), ack: 0 }, mx: 0, my: 0, switchTo: null, capital: false, word: null, wordBack: null, left: false, token: newToken(), away: null };
         this.clients.push(client);
         this.broadcastLobby();
       } else if (m.t === 'i' && client) {
@@ -59,10 +83,17 @@ export class HostSession {
       }
     });
     conn.onClose(() => {
-      if (!client || client.left) return;
-      client.left = true;
-      if (this.started) this.onClientLeft(client.view.playerId);
-      else {
+      if (!client || client.left || client.conn !== conn) return; // conn.left or replaced by a rejoin
+      if (this.started) {
+        const c = client;
+        c.mx = c.my = 0;
+        c.away = setTimeout(() => {
+          c.left = true;
+          this.onClientLeft(c.view.playerId);
+        }, this.graceMs);
+        this.onClientAway(c.view.playerId, true);
+      } else {
+        client.left = true;
         this.clients = this.clients.filter((c) => c !== client);
         this.broadcastLobby();
       }
@@ -83,12 +114,14 @@ export class HostSession {
   /** Lock the lobby and tell everyone to start. Humans first (host = 0), bots fill to 8. */
   start(seed: number, botNames: string[]): PlayerSetup[] {
     this.started = true;
+    this.seed = seed;
     const humans = this.clients.filter((c) => !c.left);
     const players: PlayerSetup[] = [{ name: this.hostName, isBot: false }, ...humans.map((c) => ({ name: c.name, isBot: false }))];
     for (const n of botNames) if (players.length < MAX_PLAYERS) players.push({ name: n, isBot: true });
+    this.setup = players;
     humans.forEach((c, i) => {
       c.view.playerId = c.view.viewId = i + 1;
-      c.conn.send({ t: 'start', seed, players, you: i + 1 } satisfies HostMsg);
+      c.conn.send({ t: 'start', seed, players, you: i + 1, tok: c.token } satisfies HostMsg);
     });
     return players;
   }
@@ -97,7 +130,7 @@ export class HostSession {
   inputs(): Record<number, PlayerInput> {
     const out: Record<number, PlayerInput> = {};
     for (const c of this.clients) {
-      if (c.left || c.view.playerId < 0) continue;
+      if (c.left || c.view.playerId < 0 || c.away) continue;
       out[c.view.playerId] = { mx: c.mx, my: c.my, switchTo: c.switchTo, capital: c.capital, word: c.word, wordBack: c.wordBack };
       c.word = null;
       c.wordBack = null;
@@ -112,13 +145,14 @@ export class HostSession {
     this.pendingEvents.push(...w.events);
     if (w.tick % 3 === 0 && !w.over) return;
     for (const c of this.clients) {
-      if (c.left || c.view.playerId < 0) continue;
+      if (c.left || c.view.playerId < 0 || c.away) continue;
       c.conn.send({ t: 's', snap: encodeSnapshot(w, c.view, this.pendingEvents) } satisfies HostMsg);
     }
     this.pendingEvents = [];
   }
 
   close(): void {
+    for (const c of this.clients) if (c.away) clearTimeout(c.away);
     for (const c of this.clients) if (!c.left) c.conn.send({ t: 'bye', reason: 'The host closed the match.' } satisfies HostMsg);
     for (const c of this.clients) c.conn.close();
     this.clients = [];
@@ -127,7 +161,7 @@ export class HostSession {
 
 export class ClientSession {
   onLobby: (names: string[], you: number, max: number) => void = () => {};
-  onStart: (seed: number, players: PlayerSetup[], you: number) => void = () => {};
+  onStart: (seed: number, players: PlayerSetup[], you: number, tok: string) => void = () => {};
   onSnapshot: (s: Snapshot) => void = () => {};
   onBye: (reason: string) => void = () => {};
   private seq = 0;
@@ -135,10 +169,10 @@ export class ClientSession {
   private server = { x: 0, y: 0 };
   private hasServer = false;
 
-  constructor(readonly conn: Conn, private name: string) {
+  constructor(readonly conn: Conn, private name: string, private rejoinToken?: string) {
     conn.onMessage((m: HostMsg) => {
       if (m.t === 'lobby') this.onLobby(m.names, m.you, m.max);
-      else if (m.t === 'start') this.onStart(m.seed, m.players, m.you);
+      else if (m.t === 'start') this.onStart(m.seed, m.players, m.you, m.tok ?? '');
       else if (m.t === 's') this.onSnapshot(m.snap);
       else if (m.t === 'bye') this.onBye(m.reason);
     });
@@ -146,7 +180,7 @@ export class ClientSession {
 
   /** Say hello to the host (call after setting the callbacks). */
   join(): void {
-    this.conn.send({ t: 'hello', name: this.name, v: NET_VERSION } satisfies ClientMsg);
+    this.conn.send({ t: 'hello', name: this.name, v: NET_VERSION, tok: this.rejoinToken } satisfies ClientMsg);
   }
 
   sendInput(inp: PlayerInput, viewId: number): void {
@@ -166,10 +200,10 @@ export class ClientSession {
   }
 
   /** Predicted position: server position plus inputs the host has not applied yet. */
-  predicted(): { x: number; y: number } | null {
+  predicted(mul = 1): { x: number; y: number } | null {
     if (!this.hasServer) return null;
     let pos = { ...this.server };
-    for (const p of this.pending) pos = moveStep(pos.x, pos.y, p.mx, p.my);
+    for (const p of this.pending) pos = moveStep(pos.x, pos.y, p.mx, p.my, mul);
     return pos;
   }
 

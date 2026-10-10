@@ -13,6 +13,8 @@
 - Uncommitted on purpose: font-check work (src/render/fonts.ts, tests/e2e/fontcheck.spec.ts, tools/); user said to leave it for now.
 - Testing notes: dev server on port 5180 (5173 belongs to another local game); Cloudflare tunnel via `cloudflared tunnel --url http://localhost:5174` (vite allows *.trycloudflare.com). Port 4173 may be taken by another local app; then run e2e with a copy of playwright.config.ts using another port.
 
+- Balance patch (11 changes, see DECISIONS.md "Balance patch"): built, 91 unit + 3 e2e pass, build OK. NOT playtested, NOT committed yet.
+
 ## Next steps
 2. User: playtest solo + online; report pacing/balance feel (BLOCKERS.md #1).
 3. If resumed: tune config.ts knobs from playtest feedback, re-run tests, commit.
@@ -35,3 +37,8 @@
 - Test runs are capped at 500 ticks; long timers (fog, refill) are tested by calling `updateFog`/`updateWave` with large dt.
 - Players are indexed by id (`w.players[id]`); copies by id (`w.copies[id]`).
 - Do not put backticks inside double-quoted shell strings (bash executes them). Use the Write/Edit tools for markdown.
+
+## New word powers (built 2026-10-10, needs playtest)
+- 13 new words finished: PUSH (added), BOUNCE FREEZE ERASE VOID SQUIRT DISARM QUICK LIFE ZAP WHIRL FLIP MAGNET. Tests in tests/unit/newwords.test.ts (105 unit tests pass, build + 3 e2e pass).
+- Committed and pushed without a playtest verdict (user asked). Includes the unrelated guest-rejoin and font work that was in the tree.
+- Open: placeholder numbers listed in DECISIONS.md; check visuals (black hole, zap, ink, flip/spin) and online play.

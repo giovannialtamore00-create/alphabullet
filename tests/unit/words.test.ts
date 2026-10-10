@@ -7,7 +7,7 @@ import { matchWord, useWord } from '../../src/sim/words';
 import { isolate, run, testWorld } from './helpers';
 
 function setup(...words: string[]): World {
-  const w = testWorld();
+  const w = testWorld(6); // a seed where bots leave D, A, S, H, P, I, E, R, C, B, O, M, Z free
   isolate(w);
   for (const word of words) for (const ch of word) debugGiveLetter(w, 0, ch);
   return w;
@@ -70,7 +70,7 @@ describe('word powers', () => {
     const w = setup('PIERCE');
     const p = w.players[0];
     step(w, { 0: say('PIERCE') });
-    expect(p.pierceTimer).toBeGreaterThan(PIERCE.duration - 0.1);
+    expect(p.fx.pierce).toBeGreaterThan(PIERCE.duration - 0.1);
     // A lone pierce bullet flying right through two mobs.
     const a = makeMob(w, '#', 4000, 4000);
     const b = makeMob(w, '#', 4060, 4000);
@@ -83,7 +83,7 @@ describe('word powers', () => {
     expect(a.hp).toBe(990);
     expect(b.hp).toBe(990);
     run(w, Math.ceil(PIERCE.duration * 30));
-    expect(p.pierceTimer).toBe(0);
+    expect(p.fx.pierce).toBe(0);
   });
 
   it('matchWord finds a word at the end of the typed letters', () => {

@@ -99,14 +99,19 @@ export function updateMobs(w: World, dt: number): void {
         target = p;
       }
     }
+    if (m.slowT) {
+      m.slowT = Math.max(0, m.slowT - dt);
+      if (m.slowT <= 0) m.slow = 0;
+    }
     if (!target || best > MOB_DESPAWN_DIST) {
       m.hp = 0; // despawn: no reward
       m.lastHitBy = null;
       continue;
     }
     if (best > 1) {
-      m.x += ((target.x - m.x) / best) * m.speed * dt;
-      m.y += ((target.y - m.y) / best) * m.speed * dt;
+      const sp = m.speed * (1 - (m.slow ?? 0));
+      m.x += ((target.x - m.x) / best) * sp * dt;
+      m.y += ((target.y - m.y) / best) * sp * dt;
     }
     // Separation so swarms spread instead of stacking.
     hash.query(m.x, m.y, m.r * 2, near);

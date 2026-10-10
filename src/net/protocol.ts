@@ -5,21 +5,21 @@
  */
 import { MOB_TIERS } from '../sim/config';
 import { MOB_KEYS, MOBS } from '../sim/glyphs';
-import type { Bullet, CopyState, Mob, SimEvent, World } from '../sim/types';
+import { TIMED_FX, type Bullet, type CopyState, type Mob, type SimEvent, type World } from '../sim/types';
 import type { PlayerSetup } from '../sim/world';
 import { WORDS } from '../sim/words';
 
-export const NET_VERSION = 5;
+export const NET_VERSION = 7;
 export const SNAPSHOT_RANGE = 1400; // px around the client's viewed player
 export const EVENT_RANGE = 1600;
 
 export type ClientMsg =
-  | { t: 'hello'; name: string; v: number }
+  | { t: 'hello'; name: string; v: number; tok?: string }
   | { t: 'i'; q: number; mx: number; my: number; s: string | null; c: 0 | 1; v: number; w?: string | null; b?: string | null };
 
 export type HostMsg =
   | { t: 'lobby'; names: string[]; you: number; max: number }
-  | { t: 'start'; seed: number; players: PlayerSetup[]; you: number }
+  | { t: 'start'; seed: number; players: PlayerSetup[]; you: number; tok?: string }
   | { t: 's'; snap: Snapshot }
   | { t: 'bye'; reason: string };
 
@@ -33,10 +33,19 @@ export interface Snapshot {
   bn: number[][]; // new bullets
   bg: number[]; // gone bullet ids
   f: number[];
+  vd: number[][]; // black holes: id, owner, x, y, t
   wv: number;
   o: number; // over
   w: number; // winner or -1
   e: SimEvent[];
+}
+
+/** Bullet effect flags for rendering on the client: 1 pierce, 2 bounce, 4 freeze, 8 disarm, 16 zap. */
+function bulletFlags(b: Bullet): number {
+  return (b.pierce ? 1 : 0) | (b.bounce ? 2 : 0) | (b.freeze ? 4 : 0) | (b.disarm ? 8 : 0) | (b.zap ? 16 : 0);
+}
+function flagsToBullet(f: number): Partial<Bullet> {
+  return { pierce: !!(f & 1), bounce: f & 2 ? 1 : 0, freeze: !!(f & 4), disarm: !!(f & 8), zap: !!(f & 16) };
 }
 
 const STATES: CopyState[] = ['pool', 'ground', 'owned'];
@@ -81,7 +90,7 @@ export function encodeSnapshot(w: World, cv: ClientView, events: SimEvent[]): Sn
     alive.add(b.id);
     if (cv.sentBullets.has(b.id) || !near(b.x, b.y)) continue;
     cv.sentBullets.add(b.id);
-    bn.push([b.id, b.owner, r0(b.x), r0(b.y), r0(b.vx), r0(b.vy), r1(b.r), r2(b.life), b.capital ? 1 : 0]);
+    bn.push([b.id, b.owner, r0(b.x), r0(b.y), r0(b.vx), r0(b.vy), r1(b.r), r2(b.life), b.capital ? 1 : 0, bulletFlags(b)]);
   }
   const bg: number[] = [];
   for (const id of cv.sentBullets)
@@ -111,7 +120,10 @@ export function encodeSnapshot(w: World, cv: ClientView, events: SimEvent[]): Sn
       r1(p.tempHp),
       p.lives,
       r1(p.spawnProt),
-      r1(p.pierceTimer),
+      ...TIMED_FX.map((k) => r1(p.fx[k])),
+      r2(p.slow),
+      r1(p.disarmT),
+      r1(p.splashT),
       ...WORDS.map((d) => r1(p.wordCd[d.word] ?? 0)),
     ]),
     pl: w.players.map((p) => p.letters),
@@ -120,6 +132,7 @@ export function encodeSnapshot(w: World, cv: ClientView, events: SimEvent[]): Sn
     bn,
     bg,
     f: [r0(f.x), r0(f.y), r0(f.r), r0(f.toX), r0(f.toY), r0(f.toR), ['wait', 'shrink', 'done'].indexOf(f.phase), r1(f.timer), f.stage, f.dps],
+    vd: w.voids.map((h) => [h.id, h.owner, r0(h.x), r0(h.y), r2(h.t)]),
     wv: w.wave.timer === null ? -1 : r1(w.wave.timer),
     o: w.over ? 1 : 0,
     w: w.winner ?? -1,
@@ -153,8 +166,12 @@ export function applySnapshot(w: World, s: Snapshot, opts: { keepLocal?: number 
     p.tempHp = a[14];
     p.lives = a[15];
     p.spawnProt = a[16];
-    p.pierceTimer = a[17];
-    WORDS.forEach((d, k) => (p.wordCd[d.word] = a[18 + k]));
+    const n = TIMED_FX.length;
+    TIMED_FX.forEach((k, m) => (p.fx[k] = a[17 + m]));
+    p.slow = a[17 + n];
+    p.disarmT = a[18 + n];
+    p.splashT = a[19 + n];
+    WORDS.forEach((d, k) => (p.wordCd[d.word] = a[20 + n + k]));
     p.letters = s.pl[i] ?? [];
   });
   s.c.forEach((a, i) => {
@@ -184,10 +201,11 @@ export function applySnapshot(w: World, s: Snapshot, opts: { keepLocal?: number 
   });
   const gone = new Set(s.bg);
   w.bullets = w.bullets.filter((b) => !gone.has(b.id));
-  for (const [id, owner, x, y, vx, vy, r, life, cap] of s.bn) {
-    const b: Bullet = { id, owner, copyId: -1, x, y, vx, vy, r, dmg: 0, life, capital: !!cap };
+  for (const [id, owner, x, y, vx, vy, r, life, cap, fl] of s.bn) {
+    const b: Bullet = { id, owner, copyId: -1, x, y, vx, vy, r, dmg: 0, life, capital: !!cap, ...flagsToBullet(fl) };
     w.bullets.push(b);
   }
+  w.voids = s.vd.map(([id, owner, x, y, t]) => ({ id, owner, x, y, t }));
   const f = w.fog;
   [f.x, f.y, f.r, f.toX, f.toY, f.toR] = s.f;
   f.phase = (['wait', 'shrink', 'done'] as const)[s.f[6]];

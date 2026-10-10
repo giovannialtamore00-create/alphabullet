@@ -7,13 +7,15 @@ import {
   GROUND_LETTERS,
   MAP_SIZE,
   PLAYER_SPEED,
-  RESPAWN_DELAY,
-  RESPAWN_MIN_DIST_FROM_OLD,
+  LETTER_SPAWN,
+  VOWELS,
+  VOWEL_COPIES,
+  VOWEL_WEIGHT,
   XP,
 } from '../../src/sim/config';
 import { activeCopy, activeForm, damagePlayer } from '../../src/sim/combat';
 import { updateFog } from '../../src/sim/fog';
-import { updateWave, waveCount, updatePickups } from '../../src/sim/letters';
+import { drawFromPool, groundCount, updateWave, waveCount, updatePickups } from '../../src/sim/letters';
 import { makeMob } from '../../src/sim/mobs';
 import type { Player, World } from '../../src/sim/types';
 import { createWorld, debugGiveLetter, debugUpgradeActive, hashWorld, removePlayer, step } from '../../src/sim/world';
@@ -40,12 +42,12 @@ function equip(w: World, id: number, letter: string) {
 }
 
 describe('setup and letter pool', () => {
-  it('has 52 copies, 2 per letter', () => {
+  it('has 60 copies: 4 per vowel (O, A, I, E), 2 per other letter', () => {
     const w = testWorld();
-    expect(w.copies).toHaveLength(52);
+    expect(w.copies).toHaveLength(60);
     const counts = new Map<string, number>();
     for (const c of w.copies) counts.set(c.letter, (counts.get(c.letter) ?? 0) + 1);
-    expect([...counts.values()].every((n) => n === 2)).toBe(true);
+    for (const [l, n] of counts) expect(n).toBe(VOWELS.includes(l) ? 4 : 2);
   });
 
   it('each player starts with 2 distinct letters, and 8 letters are on the map', () => {
@@ -106,35 +108,43 @@ describe('setup and letter pool', () => {
   });
 });
 
-describe('respawn rule', () => {
-  it('starts a 2-minute timer at 50% taken, then refills to 8 in new spots', () => {
+describe('letter spawning', () => {
+  it('3 new letters appear every 10 seconds, up to 16 on the ground', () => {
     const w = testWorld(5);
-    const ground = w.copies.filter((c) => c.state === 'ground');
-    const oldSpots = ground.map((c) => ({ x: c.x, y: c.y }));
+    const n0 = groundCount(w);
     updateWave(w, DT);
-    expect(w.wave.timer).toBeNull();
-    for (const c of ground.slice(0, 3)) giveTo(w, c);
-    updateWave(w, DT);
-    expect(w.wave.timer).toBeNull(); // 5 left: not yet
-    giveTo(w, ground[3]);
-    updateWave(w, DT);
-    expect(w.wave.timer).toBe(RESPAWN_DELAY);
-    updateWave(w, RESPAWN_DELAY - 1);
-    expect(waveCount(w)).toBe(4);
-    updateWave(w, 1.01);
-    expect(waveCount(w)).toBe(GROUND_LETTERS);
-    const fresh = w.copies.filter((c) => c.state === 'ground' && c.wave && !ground.includes(c));
-    expect(fresh).toHaveLength(4);
-    for (const c of fresh)
-      for (const s of oldSpots) expect(Math.hypot(c.x - s.x, c.y - s.y)).toBeGreaterThan(RESPAWN_MIN_DIST_FROM_OLD * 0.5);
+    expect(groundCount(w)).toBe(n0);
+    updateWave(w, LETTER_SPAWN.every);
+    expect(groundCount(w)).toBe(n0 + 3);
+    updateWave(w, LETTER_SPAWN.every);
+    expect(groundCount(w)).toBe(n0 + 6);
+    for (let i = 0; i < 10; i++) updateWave(w, LETTER_SPAWN.every);
+    expect(groundCount(w)).toBe(LETTER_SPAWN.groundCap);
+  });
+
+  it('vowels O, A, I, E have 4 copies, other letters 2', () => {
+    const w = testWorld(5);
+    const count = (l: string) => w.copies.filter((c) => c.letter === l).length;
+    for (const l of VOWELS) expect(count(l)).toBe(VOWEL_COPIES);
+    expect(count('Z')).toBe(2);
+  });
+
+  it('vowels are drawn 15% more often', () => {
+    const w = testWorld(5);
+    for (const c of w.copies) c.state = 'pool';
+    let v = 0;
+    const N = 20000;
+    for (let i = 0; i < N; i++) if (VOWELS.includes(drawFromPool(w)!.letter)) v++;
+    const base = (4 * VOWEL_COPIES) / (4 * VOWEL_COPIES + 2 * 22);
+    const expected = (base * VOWEL_WEIGHT) / (base * VOWEL_WEIGHT + (1 - base));
+    expect(v / N).toBeCloseTo(expected, 1);
   });
 
   it('stops spawning when every copy is owned or on the ground', () => {
     const w = testWorld(5);
     for (const c of w.copies) if (c.state === 'pool') c.state = 'owned';
-    for (const c of w.copies.filter((k) => k.state === 'ground').slice(0, 6)) giveTo(w, c);
-    updateWave(w, DT);
-    expect(w.wave.timer).toBeNull();
+    updateWave(w, LETTER_SPAWN.every);
+    expect(w.events.some((e) => e.t === 'letterWave')).toBe(false);
   });
 
   it('letters never spawn inside the fog', () => {
@@ -148,11 +158,6 @@ describe('respawn rule', () => {
       expect(Math.hypot(c.x - w.fog.x, c.y - w.fog.y)).toBeLessThanOrEqual(w.fog.r);
   });
 });
-
-function giveTo(_w: World, c: World['copies'][number]) {
-  c.state = 'owned';
-  c.owner = 99;
-}
 
 describe('movement', () => {
   it('moves at player speed, diagonals normalized, clamped to map', () => {

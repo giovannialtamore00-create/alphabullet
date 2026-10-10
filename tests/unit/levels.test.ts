@@ -15,42 +15,43 @@ function setup(): World {
   return w;
 }
 
-describe('letter levels: CAPITAL (1) and BOLD (2)', () => {
-  it('level 1 at the first threshold, BOLD at the second', () => {
+describe('letter levels: BOLD (1) and CAPITAL (2)', () => {
+  it('BOLD at the first threshold, CAPITAL at the second', () => {
     const w = setup();
     const c = activeCopy(w, w.players[0])!;
     creditXp(w, 0, c.id, XP.threshold);
-    expect(c.upgraded).toBe(true);
-    expect(c.bold).toBe(false);
-    creditXp(w, 0, c.id, XP.boldThreshold - XP.threshold);
     expect(c.bold).toBe(true);
+    expect(c.upgraded).toBe(false);
     expect(w.events.some((e) => e.t === 'bold')).toBe(true);
+    creditXp(w, 0, c.id, XP.capitalThreshold - XP.threshold);
+    expect(c.upgraded).toBe(true);
+    expect(w.events.some((e) => e.t === 'upgrade')).toBe(true);
   });
 
-  it('BOLD raises max HP and current HP by 30% while that letter is active; other letters keep their own pool', () => {
+  it('BOLD only makes bullets 25% bigger: same HP, same damage', () => {
     const w = setup();
     const p = w.players[0];
-    p.hp = 50;
+    p.fireTimer = 0;
+    step(w, {});
+    const before = w.bullets.find((b) => b.owner === 0)!;
     debugBoldActive(w, 0);
-    expect(p.maxHp).toBeCloseTo(PLAYER_HP * BOLD.hpMul);
-    expect(p.hp).toBeCloseTo(50 * BOLD.hpMul);
-    const other = w.copies[p.letters[1]].letter;
-    step(w, { 0: { mx: 0, my: 0, switchTo: other, capital: false } });
     expect(p.maxHp).toBe(PLAYER_HP);
-    expect(p.hp).toBe(PLAYER_HP); // the other letter was never hurt
+    w.bullets = [];
+    p.fireTimer = 0;
+    step(w, {});
+    const after = w.bullets.find((b) => b.owner === 0)!;
+    expect(after.dmg).toBeCloseTo(before.dmg, 5);
+    expect(after.r).toBeCloseTo(before.r * BOLD.bulletRadiusMul, 5);
   });
 
-  it('BOLD bullets deal 30% more damage, in both forms', () => {
+  it('CAPITAL cannot be used before level 2', () => {
     const w = setup();
-    const p = w.players[0];
-    for (let i = 0; i < 20; i++) step(w, {});
-    const normal = w.bullets.find((b) => b.owner === 0)!.dmg;
     debugBoldActive(w, 0);
-    w.bullets = [];
-    for (let i = 0; i < 20; i++) step(w, {});
-    expect(w.bullets.find((b) => b.owner === 0)!.dmg).toBeCloseTo(normal * BOLD.dmgMul, 5);
     step(w, { 0: cap });
-    expect(activeCopy(w, p)!.capitalTimer).toBeGreaterThan(0);
+    expect(activeCopy(w, w.players[0])!.capitalTimer).toBe(0);
+    debugUpgradeActive(w, 0);
+    step(w, { 0: cap });
+    expect(activeCopy(w, w.players[0])!.capitalTimer).toBeGreaterThan(0);
   });
 
   it('BOLD stays with the letter when it is dropped', () => {
@@ -107,9 +108,9 @@ describe('mobs', () => {
     expect([MOB_TIERS.slender.dmg, MOB_TIERS.medium.dmg, MOB_TIERS.chunky.dmg]).toEqual([2, 3, 5]);
   });
 
-  it('spawn rate grows 15% per minute', () => {
-    expect(mobSpawnRate(60) / mobSpawnRate(0)).toBeCloseTo(1.15);
-    expect(mobSpawnRate(300) / mobSpawnRate(240)).toBeCloseTo(1.15);
+  it('spawn rate grows 18% per minute', () => {
+    expect(mobSpawnRate(60) / mobSpawnRate(0)).toBeCloseTo(1.18);
+    expect(mobSpawnRate(300) / mobSpawnRate(240)).toBeCloseTo(1.18);
   });
 
   it('killing a mob heals 0.5% of max HP', () => {

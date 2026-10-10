@@ -3,12 +3,16 @@ import {
   COPIES_PER_LETTER,
   DROP_SCATTER,
   GROUND_LETTERS,
+  LETTER_SPAWN,
+  MAGNET,
+  DT,
   MAP_SIZE,
   PICKUP_RADIUS,
   PLAYER_HP,
-  RESPAWN_DELAY,
   RESPAWN_MIN_DIST_FROM_OLD,
-  RESPAWN_THRESHOLD,
+  VOWELS,
+  VOWEL_COPIES,
+  VOWEL_WEIGHT,
 } from './config';
 import { copyMaxHp, playerRadius } from './combat';
 import { LETTER_KEYS } from './glyphs';
@@ -19,7 +23,7 @@ const MAP_MARGIN = 250;
 export function createCopies(): LetterCopy[] {
   const out: LetterCopy[] = [];
   for (const letter of LETTER_KEYS)
-    for (let k = 0; k < COPIES_PER_LETTER; k++)
+    for (let k = 0; k < (VOWELS.includes(letter) ? VOWEL_COPIES : COPIES_PER_LETTER); k++)
       out.push({
         id: out.length,
         letter,
@@ -45,7 +49,15 @@ export function ownsLetter(w: World, p: Player, letter: string): boolean {
 /** Random copy still in the pool, skipping letters in `exclude`. */
 export function drawFromPool(w: World, exclude: Set<string> = new Set()): LetterCopy | null {
   const avail = w.copies.filter((c) => c.state === 'pool' && !exclude.has(c.letter));
-  return avail.length ? w.rng.pick(avail) : null;
+  if (!avail.length) return null;
+  // Vowels are 15% more likely to be drawn.
+  const wt = (c: LetterCopy) => (VOWELS.includes(c.letter) ? VOWEL_WEIGHT : 1);
+  let roll = w.rng.next() * avail.reduce((a, c) => a + wt(c), 0);
+  for (const c of avail) {
+    roll -= wt(c);
+    if (roll < 0) return c;
+  }
+  return avail[avail.length - 1];
 }
 
 export function giveCopy(_w: World, p: Player, c: LetterCopy): void {
@@ -97,8 +109,12 @@ export function waveCount(w: World): number {
   return w.copies.filter((c) => c.state === 'ground' && c.wave).length;
 }
 
-/** Place wave letters until the map holds GROUND_LETTERS, avoiding old spots. Returns how many spawned. */
-export function spawnWave(w: World): number {
+export function groundCount(w: World): number {
+  return w.copies.filter((c) => c.state === 'ground').length;
+}
+
+/** Place pool letters (at most `max`) until `target` letters lie on the ground, avoiding old spots. Returns how many spawned. */
+export function spawnWave(w: World, target = GROUND_LETTERS, max = Infinity): number {
   const avoid: { x: number; y: number; d: number }[] = [
     ...w.wave.spots.map((s) => ({ ...s, d: RESPAWN_MIN_DIST_FROM_OLD })),
     ...w.copies.filter((c) => c.state === 'ground').map((c) => ({ x: c.x, y: c.y, d: 500 })),
@@ -106,7 +122,7 @@ export function spawnWave(w: World): number {
   ];
   const spots: { x: number; y: number }[] = [];
   let n = 0;
-  while (waveCount(w) < GROUND_LETTERS) {
+  while (groundCount(w) < target && n < max) {
     const c = drawFromPool(w);
     if (!c) break;
     const s = findSpot(w, avoid);
@@ -122,9 +138,22 @@ export function spawnWave(w: World): number {
   return n;
 }
 
+/** MAGNET: ground letters in range slide toward the player (letters they already own stay put). */
+function magnetPull(w: World, p: Player): void {
+  for (const c of w.copies) {
+    if (c.state !== 'ground' || ownsLetter(w, p, c.letter)) continue;
+    const d = Math.hypot(p.x - c.x, p.y - c.y);
+    if (d > MAGNET.radius || d < 1) continue;
+    const move = Math.min(d, MAGNET.speed * DT);
+    c.x += ((p.x - c.x) / d) * move;
+    c.y += ((p.y - c.y) / d) * move;
+  }
+}
+
 export function updatePickups(w: World): void {
   for (const p of w.players) {
     if (!p.alive) continue;
+    if (p.fx.magnet > 0) magnetPull(w, p);
     const reach = PICKUP_RADIUS + playerRadius(w, p);
     for (const c of w.copies) {
       if (c.state !== 'ground') continue;
@@ -138,18 +167,12 @@ export function updatePickups(w: World): void {
   }
 }
 
-/** Once half the map letters are taken, start the refill timer; refill when it ends. */
+/** Every LETTER_SPAWN.every seconds, 3 new letters appear (up to the ground cap). */
 export function updateWave(w: World, dt: number): void {
-  if (w.wave.timer === null) {
-    const poolLeft = w.copies.some((c) => c.state === 'pool');
-    if (poolLeft && waveCount(w) <= RESPAWN_THRESHOLD) w.wave.timer = RESPAWN_DELAY;
-    return;
-  }
-  w.wave.timer -= dt;
-  if (w.wave.timer <= 0) {
-    w.wave.timer = null;
-    if (spawnWave(w) > 0) w.events.push({ t: 'letterWave' });
-  }
+  w.wave.timer = (w.wave.timer ?? LETTER_SPAWN.every) - dt;
+  if (w.wave.timer > 0) return;
+  w.wave.timer += LETTER_SPAWN.every;
+  if (spawnWave(w, LETTER_SPAWN.groundCap, LETTER_SPAWN.count) > 0) w.events.push({ t: 'letterWave' });
 }
 
 /** Put one copy on the ground near (x, y) as a normal pickup, keeping XP/upgrade state. HP refills. */

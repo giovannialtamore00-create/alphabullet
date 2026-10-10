@@ -1,13 +1,13 @@
 /** In-game HUD as a DOM overlay (black ink on paper). */
-import { CAPITAL_COOLDOWN, CAPITAL_DURATION, FOG_STAGES, XP } from '../sim/config';
+import { CAPITAL_COOLDOWN, CAPITAL_DURATION, FOG_STAGES, SPLASH, XP } from '../sim/config';
 import { activeCopy, copyMaxHp } from '../sim/combat';
 import { getForm } from '../sim/glyphDerive';
-import type { LetterCopy, World } from '../sim/types';
+import type { LetterCopy, TimedFx, World } from '../sim/types';
 import { WORDS } from '../sim/words';
 
 /** Progress (0..1) toward the copy's next level. */
 const levelProgress = (c: LetterCopy) =>
-  c.bold ? 1 : c.upgraded ? Math.min(1, (c.xp - XP.threshold) / (XP.boldThreshold - XP.threshold)) : Math.min(1, c.xp / XP.threshold);
+  c.upgraded ? 1 : c.bold ? Math.min(1, (c.xp - XP.threshold) / (XP.capitalThreshold - XP.threshold)) : Math.min(1, c.xp / XP.threshold);
 import { INK, strokeGlyph } from '../render/glyphCanvas';
 
 const fmt = (s: number) => {
@@ -45,6 +45,7 @@ export class Hud {
   private capInfo: HTMLDivElement;
   private words: { row: HTMLDivElement; letters: HTMLSpanElement[]; info: HTMLSpanElement }[] = [];
   private fogWarn: HTMLDivElement;
+  private ink: HTMLDivElement;
   private spectate: HTMLDivElement;
   private toasts: HTMLDivElement;
   private slots: Slot[] = [];
@@ -52,6 +53,13 @@ export class Hud {
 
   constructor(parent: HTMLElement) {
     this.root = el('div', 'hud', parent);
+    // SPLASH ink: blotches over the whole screen, fading out as the effect ends.
+    this.ink = el('div', 'hud-ink', this.root);
+    this.ink.style.cssText =
+      'position:fixed;inset:0;pointer-events:none;opacity:0;z-index:5;background:' +
+      'radial-gradient(circle at 20% 30%,#000 0 14%,transparent 15%),radial-gradient(circle at 75% 25%,#000 0 17%,transparent 18%),' +
+      'radial-gradient(circle at 50% 60%,#000 0 20%,transparent 21%),radial-gradient(circle at 25% 80%,#000 0 15%,transparent 16%),' +
+      'radial-gradient(circle at 85% 75%,#000 0 16%,transparent 17%),rgba(0,0,0,0.35)';
     const tl = el('div', 'hud-hp', this.root);
     el('span', 'hud-label', tl).textContent = 'INK';
     const bar = el('div', 'bar', tl);
@@ -103,10 +111,11 @@ export class Hud {
     // CAPITAL bonus HP: hatched stripe along the bottom of the bar.
     this.tempFill.style.width = `${Math.min(100, (shown.tempHp / shown.maxHp) * 100)}%`;
     this.fogWarn.style.display = me.alive && me.inFog ? 'block' : 'none';
+    this.ink.style.opacity = String(me.alive ? SPLASH.cover * Math.min(1, me.splashT / SPLASH.duration) / 0.85 : 0);
     this.textT -= dt;
     if (this.textT > 0) return;
     this.textT = 0.1;
-    this.hpText.textContent = `${Math.max(0, Math.ceil(shown.hp))}${shown.tempHp > 0 ? ` +${Math.ceil(shown.tempHp)}` : ""}${shown.maxHp > 100 ? " BOLD" : ""}  ${"\u2665".repeat(shown.lives)}`;
+    this.hpText.textContent = `${Math.max(0, Math.ceil(shown.hp))}${shown.tempHp > 0 ? ` +${Math.ceil(shown.tempHp)}` : ""}  ${"\u2665".repeat(shown.lives)}`;
     this.timer.textContent = fmt(w.time);
     this.alive.textContent = `${w.players.filter((p) => p.alive).length} / ${w.players.length} letters standing`;
     const f = w.fog;
@@ -166,11 +175,11 @@ export class Hud {
       return;
     }
     this.xpFill.style.width = `${levelProgress(c) * 100}%`;
-    this.xpText.textContent = c.bold
-      ? `${c.letter} BOLD (max level)`
-      : c.upgraded
-        ? `Lv1 ${c.letter} - XP ${Math.floor(c.xp)} / ${XP.boldThreshold} to BOLD`
-        : `Lv0 ${c.letter.toLowerCase()} - XP ${Math.floor(c.xp)} / ${XP.threshold} to CAPITAL`;
+    this.xpText.textContent = c.upgraded
+      ? `${c.letter} CAPITAL unlocked (max level)`
+      : c.bold
+        ? `Lv1 ${c.letter} BOLD - XP ${Math.floor(c.xp)} / ${XP.capitalThreshold} to CAPITAL`
+        : `Lv0 ${c.letter.toLowerCase()} - XP ${Math.floor(c.xp)} / ${XP.threshold} to BOLD`;
     if (!c.upgraded) this.capInfo.textContent = 'CAPITAL locked - earn XP with this letter';
     else if (c.capitalTimer > 0) this.capInfo.textContent = `CAPITAL ${c.letter}! ${Math.ceil(c.capitalTimer)}s`;
     else if (c.capitalCd > 0) this.capInfo.textContent = `CAPITAL recharging ${Math.ceil(c.capitalCd)}s`;
@@ -190,7 +199,8 @@ export class Hud {
       const cd = p.wordCd[d.word] ?? 0;
       row.classList.toggle('complete', all);
       row.classList.toggle('ready', all && cd <= 0);
-      if (d.effect === 'pierce' && p.pierceTimer > 0) info.textContent = `${Math.ceil(p.pierceTimer)}s!`;
+      const active = d.effect in p.fx ? p.fx[d.effect as TimedFx] : 0;
+      if (active > 0) info.textContent = `${Math.ceil(active)}s!`;
       else info.textContent = all && cd > 0 ? `${Math.ceil(cd)}s` : '';
     });
   }

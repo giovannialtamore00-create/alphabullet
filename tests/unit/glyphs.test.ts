@@ -22,7 +22,15 @@ describe('glyph data and derivation', () => {
   });
 
   it('every form can fire', () => {
-    for (const k of LETTER_KEYS) for (const cap of [false, true]) expect(getForm(k, cap).emitters.length).toBeGreaterThan(0);
+    for (const k of LETTER_KEYS) {
+      if (LETTERS[k].noShoot) continue;
+      for (const cap of [false, true]) expect(getForm(k, cap).emitters.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('B, D and O do not shoot; C and Q still do', () => {
+    for (const k of ['B', 'D', 'O']) for (const cap of [false, true]) expect(getForm(k, cap).emitters).toHaveLength(0);
+    for (const k of ['C', 'Q']) for (const cap of [false, true]) expect(getForm(k, cap).emitters.length).toBeGreaterThan(0);
   });
 
   it('emitters sit on free stroke ends, not on joints', () => {
@@ -53,6 +61,7 @@ describe('glyph data and derivation', () => {
   it('capital forms hit harder and shields get stronger', () => {
     for (const k of LETTER_KEYS) {
       const lo = getForm(k, false), up = getForm(k, true);
+      if (!lo.emitters.length) continue; // B, D, O do not shoot
       const dps = (f: typeof lo) => f.bullet.dmg * f.bullet.rate * f.emitters.length;
       expect(dps(up)).toBeGreaterThan(dps(lo));
       expect(up.bullet.radius).toBeGreaterThan(lo.bullet.radius);
@@ -90,10 +99,10 @@ describe('range from stroke length, equal damage split', () => {
     const perSource = (k: string) => getForm(k, false).bullet.dmg * getForm(k, false).bullet.rate;
     expect(perSource('M')).toBeCloseTo(perSource('I') / 2, 6);
   });
-  it('longer arms shoot farther: b reaches far north, barely south', () => {
-    const b = getForm('B', false);
-    const n = b.emitters.find((e) => e.dy < 0)!;
-    const s = b.emitters.find((e) => e.dy > 0)!;
+  it('longer arms shoot farther: g reaches far west, barely north', () => {
+    const b = getForm('G', false);
+    const n = b.emitters.find((e) => e.dx < 0)!;
+    const s = b.emitters.find((e) => e.dy < 0)!;
     expect(n.range).toBeGreaterThan(s.range * 3);
     const t = getForm('T', true);
     const stem = t.emitters.find((e) => e.dy > 0)!;

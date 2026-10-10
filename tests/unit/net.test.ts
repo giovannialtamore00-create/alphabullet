@@ -88,12 +88,53 @@ describe('networking (in-memory transport)', () => {
     expect(w.copies[w.players[1].active!].letter).toBe(other);
   });
 
-  it('a client leaving mid-match drops their letters; leaving the lobby updates it', () => {
+  it('a guest who drops can rejoin with their token and keeps the same player', async () => {
+    const s = setup();
+    let tok = '';
+    s.client.onStart = (_seed, _p, _you, t) => (tok = t);
+    const players = s.host.start(9, []);
+    const w = createWorld(9, players);
+    const away: boolean[] = [];
+    s.host.onClientAway = (_id, a) => away.push(a);
+    s.host.onClientLeft = (id) => removePlayer(w, id);
+    s.host.graceMs = 50;
+    const letters = [...w.players[1].letters];
+    expect(tok).not.toBe('');
+    s.cc.close(); // refresh / connection lost
+    expect(away).toEqual([true]);
+    expect(s.host.inputs()[1]).toBeUndefined();
+    // New connection with the token.
+    const [hc2, cc2] = memoryPair();
+    s.host.addConn(hc2);
+    const c2 = new ClientSession(cc2, 'Guest', tok);
+    let got: { seed: number; you: number } | null = null;
+    c2.onStart = (seed, _p, you) => (got = { seed, you });
+    c2.join();
+    expect(got).toEqual({ seed: 9, you: 1 });
+    expect(away).toEqual([true, false]);
+    await new Promise((r) => setTimeout(r, 120)); // past the grace time: must not be eliminated
+    expect(w.players[1].alive).toBe(true);
+    expect(w.players[1].letters).toEqual(letters);
+    c2.sendInput({ mx: 1, my: 0, switchTo: null, capital: false }, 1);
+    expect(s.host.inputs()[1].mx).toBe(1);
+    // A wrong token cannot take the slot.
+    const [hc3, cc3] = memoryPair();
+    s.host.addConn(hc3);
+    let bye = '';
+    const c3 = new ClientSession(cc3, 'Evil', 'nope');
+    c3.onBye = (r) => (bye = r);
+    c3.join();
+    expect(bye).toMatch(/started/i);
+  });
+
+  it('a client leaving mid-match drops their letters; leaving the lobby updates it', async () => {
     const s = setup();
     const players = s.host.start(9, []);
     const w = createWorld(9, players);
     s.host.onClientLeft = (id) => removePlayer(w, id);
+    s.host.graceMs = 0;
     s.cc.close();
+    await new Promise((r) => setTimeout(r, 10));
     expect(w.players[1].alive).toBe(false);
     expect(w.players[1].letters).toHaveLength(0);
     const t = setup();

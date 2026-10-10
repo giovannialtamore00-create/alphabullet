@@ -1,7 +1,7 @@
 /** Ink effects: hit sparks, splats, shield waves, switch puffs, CAPITAL bursts, pickup rings. */
 import { Container, Graphics, Sprite, Texture } from 'pixi.js';
 import { activeForm } from '../sim/combat';
-import { BOMB } from '../sim/config';
+import { BOMB, ERASE, PUSH, VOID } from '../sim/config';
 import type { SimEvent, World } from '../sim/types';
 import type { GameRenderer } from './renderer';
 import { splatCanvas } from './paper';
@@ -44,9 +44,11 @@ export class Effects {
   private ringList: Ring[] = [];
   private splatTex: Texture[];
   private rippleT = new Map<number, number>();
+  private bolts: { pts: number[]; t: number }[] = [];
+  private holes = new Graphics();
 
   constructor(private r: GameRenderer) {
-    r.fx.addChild(this.layer, this.rings);
+    r.fx.addChild(this.holes, this.layer, this.rings);
     this.splatTex = [5, 9, 13].map((seed) => Texture.from(splatCanvas(96, seed)));
   }
 
@@ -158,7 +160,26 @@ export class Effects {
               this.droplets(e.fromX + (e.x - e.fromX) * t, e.fromY + (e.y - e.fromY) * t, 2, 80, 0.18, 0.35);
             }
             this.ring(e.x, e.y, { r0: 14, grow: 120, life: 0.3, width: 3 });
+          } else if (e.word === 'PUSH') {
+            this.ring(e.x, e.y, { r0: 30, grow: PUSH.radius * 1.4, life: 0.4, width: 8, alpha: 0.8 });
+            this.droplets(e.x, e.y, 16, 520, 0.25, 0.4);
+          } else if (e.word === 'ERASE') {
+            this.ring(e.x, e.y, { follow: e.id, r0: 20, grow: ERASE.radius, life: 0.5, width: 4, alpha: 0.7 });
+          } else if (e.word === 'SQUIRT') {
+            this.splat(e.x, e.y, 1.2, 1);
+            this.droplets(e.x, e.y, 30, 600, 0.35, 0.7);
+          } else if (e.word === 'LIFE') {
+            this.ring(e.x, e.y, { follow: e.id, r0: 16, grow: 90, life: 0.7, width: 5, color: 0x2f8a4a, alpha: 0.9 });
           } else this.ring(e.x, e.y, { follow: e.id, r0: 24, grow: 160, life: 0.6, width: 5 });
+          break;
+        case 'zap':
+          this.bolts.push({ pts: [e.x, e.y, ...e.pts], t: 0.18 });
+          this.droplets(e.x, e.y, 3, 140, 0.12, 0.2);
+          break;
+        case 'voidEat':
+          this.splat(e.x, e.y, 1.8, 3);
+          this.droplets(e.x, e.y, 28, 460, 0.4, 0.8);
+          this.ring(e.x, e.y, { r0: 40, grow: 320, life: 0.6, width: 8 });
           break;
         case 'shieldBlock': {
           const p = w.players[e.id];
@@ -215,6 +236,44 @@ export class Effects {
           });
       }
       this.rippleT.set(p.id, t);
+    }
+
+    // Black holes: a dark core, a wobbling pull ring once armed, and a faint range circle.
+    const h = this.holes.clear();
+    for (const v of w.voids) {
+      const armed = v.t >= VOID.arm;
+      const wob = Math.sin(v.t * 14) * 3;
+      const core = armed ? 34 + wob : 14 + (v.t / VOID.arm) * 14;
+      h.circle(v.x, v.y, VOID.radius).stroke({ width: 2, color: INK, alpha: armed ? 0.3 : 0.12 });
+      if (armed) {
+        for (let i = 0; i < 3; i++) {
+          const k = ((v.t * 0.9 + i / 3) % 1);
+          h.circle(v.x, v.y, VOID.radius * (1 - k)).stroke({ width: 3, color: INK, alpha: 0.35 * k });
+        }
+      }
+      h.circle(v.x, v.y, core * 1.5).fill({ color: INK, alpha: 0.25 });
+      h.circle(v.x, v.y, core).fill({ color: 0x000000, alpha: 1 });
+    }
+    // ERASE aura around players who have it running.
+    for (const p of w.players)
+      if (p.alive && p.fx.erase > 0) {
+        const pos = this.r.playerPos(p, alpha);
+        h.circle(pos.x, pos.y, ERASE.radius).stroke({ width: 2, color: INK, alpha: 0.18 });
+      }
+    // ZAP bolts: short jagged electric lines.
+    this.bolts = this.bolts.filter((b) => (b.t -= dt) > 0);
+    for (const b of this.bolts) {
+      h.moveTo(b.pts[0], b.pts[1]);
+      for (let i = 2; i < b.pts.length; i += 2) {
+        const x0 = b.pts[i - 2];
+        const y0 = b.pts[i - 1];
+        const x1 = b.pts[i];
+        const y1 = b.pts[i + 1];
+        const n = 5;
+        for (let k = 1; k < n; k++) h.lineTo(x0 + ((x1 - x0) * k) / n + (Math.random() - 0.5) * 22, y0 + ((y1 - y0) * k) / n + (Math.random() - 0.5) * 22);
+        h.lineTo(x1, y1);
+      }
+      h.stroke({ width: 3, color: 0xd99a1e, alpha: 0.95 });
     }
 
     let j = 0;

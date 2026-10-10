@@ -190,9 +190,10 @@ export function angleInArc(deg: number, s: ShieldArc): boolean {
 
 export function deriveForm(letter: string, glyph: GlyphForm, capital: boolean): DerivedForm {
   const size = capital ? CAP_SIZE : LOWER_SIZE;
-  let emitters = deriveEmitters(glyph.strokes);
+  const noShoot = !!LETTERS[letter]?.noShoot;
+  let emitters = noShoot ? [] : deriveEmitters(glyph.strokes);
   let emittersFromShield = false;
-  if (!emitters.length && glyph.shields.length) {
+  if (!noShoot && !emitters.length && glyph.shields.length) {
     emitters = emittersFromShields(glyph.shields);
     emittersFromShield = true;
   }

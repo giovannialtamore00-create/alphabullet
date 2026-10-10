@@ -10,6 +10,11 @@ export interface PlayerInput {
   word?: string | null; // word power typed this tick, e.g. 'DASH'
   wordBack?: string | null; // letter held before typing the word; switched back to after it
 }
+/** Word powers that last a while; their timers live in Player.fx (order = network order). */
+export const TIMED_FX = ['pierce', 'bounce', 'freeze', 'erase', 'disarm', 'speed', 'zap', 'spin', 'flip', 'magnet'] as const;
+export type TimedFx = (typeof TIMED_FX)[number];
+export const noFx = (): Record<TimedFx, number> => Object.fromEntries(TIMED_FX.map((k) => [k, 0])) as Record<TimedFx, number>;
+
 export const NO_INPUT: PlayerInput = { mx: 0, my: 0, switchTo: null, capital: false };
 
 export interface Player {
@@ -41,7 +46,12 @@ export interface Player {
   placement: number | null;
   god: boolean;
   wordCd: Record<string, number>; // seconds left per word power
-  pierceTimer: number; // seconds of PIERCE left
+  /** Seconds left of each timed word power this player cast on itself. */
+  fx: Record<TimedFx, number>;
+  slow: number; // FREEZE slow received, 0..FREEZE.max
+  slowT: number; // seconds until the slow wears off
+  disarmT: number; // seconds of DISARM received: cannot fire
+  splashT: number; // seconds of SPLASH ink on this player's screen
   faceX: number; // last movement direction (unit vector), used by DASH
   faceY: number;
 }
@@ -77,6 +87,8 @@ export interface Mob {
   contactCd: number;
   lastHitBy: number | null;
   lastHitCopy: number | null;
+  slow?: number; // FREEZE slow, 0..FREEZE.max
+  slowT?: number;
 }
 
 export interface Bullet {
@@ -92,7 +104,20 @@ export interface Bullet {
   life: number;
   capital: boolean;
   pierce?: boolean; // passes through targets (PIERCE word)
+  bounce?: number; // bounces left (BOUNCE word)
+  freeze?: boolean; // slows what it hits (FREEZE word)
+  disarm?: boolean; // stops a hit player from firing (DISARM word)
+  zap?: boolean; // chains to nearby targets on hit (ZAP word)
   hitIds?: number[]; // targets a pierce bullet already hit (mob id, or -1 - player id)
+}
+
+/** VOID black hole. `t` counts up from 0: arming until VOID.arm, pulling until VOID.arm + VOID.pull. */
+export interface VoidHole {
+  id: number;
+  owner: number;
+  x: number;
+  y: number;
+  t: number;
 }
 
 export interface Fog {
@@ -129,6 +154,8 @@ export type SimEvent =
   | { t: 'capital'; id: number; letter: string; on: boolean }
   | { t: 'shieldBlock'; id: number; x: number; y: number; amount: number; angle: number }
   | { t: 'word'; id: number; word: string; x: number; y: number; fromX: number; fromY: number }
+  | { t: 'zap'; x: number; y: number; pts: number[]; by: number } // chain from (x, y) through pts (x0, y0, x1, y1...)
+  | { t: 'voidEat'; hole: number; x: number; y: number; n: number } // hole closed and swallowed n targets
   | { t: 'fogStage'; stage: number }
   | { t: 'letterWave' }
   | { t: 'matchOver'; winner: number | null };
@@ -142,6 +169,7 @@ export interface World {
   copies: LetterCopy[];
   mobs: Mob[];
   bullets: Bullet[];
+  voids: VoidHole[];
   fog: Fog;
   wave: LetterWave;
   events: SimEvent[];

@@ -1,7 +1,7 @@
 /** PixiJS renderer: paper floor, ink glyphs, camera, fog, minimap. Reads the world; never mutates it. */
 import { Application, Container, Graphics, Sprite, Text, Texture, TilingSprite } from 'pixi.js';
 import { MAP_SIZE } from '../sim/config';
-import { activeCopy, activeForm } from '../sim/combat';
+import { activeCopy, activeForm, glyphPose } from '../sim/combat';
 import { getForm } from '../sim/glyphDerive';
 import { MOBS } from '../sim/glyphs';
 import type { Bullet, Mob, Player, World } from '../sim/types';
@@ -301,6 +301,7 @@ export class GameRenderer {
 
   private placeBullet(s: Sprite, b: Bullet, x: number, y: number): void {
     s.position.set(x, y);
+    s.tint = b.zap ? 0xd99a1e : b.freeze ? 0x3a6ea5 : b.disarm ? 0x8a3a8a : b.bounce ? 0x2f8a4a : INK;
     const sc = (b.r * 2.3) / 32;
     // Slight stretch along travel direction reads as motion.
     s.rotation = Math.atan2(b.vy, b.vx);
@@ -342,7 +343,9 @@ export class GameRenderer {
       // Morph: quick squash-and-grow on switch / CAPITAL.
       const m = Math.min(1, p.morph / (cap ? 0.35 : 0.22));
       const pop = m < 1 ? 0.55 + 0.45 * m + Math.sin(m * Math.PI) * (cap ? 0.35 : 0.15) : 1;
-      v.glyph.scale.set(0.5 * pop, 0.5 * (m < 1 ? 0.7 + 0.3 * m : 1) * pop);
+      const pose = glyphPose(p);
+      v.glyph.scale.set(0.5 * pop, 0.5 * (m < 1 ? 0.7 + 0.3 * m : 1) * pop * (pose.flip ? -1 : 1));
+      v.glyph.rotation = pose.rot;
       v.flash = Math.max(0, v.flash - dt);
       v.glyph.tint = v.flash > 0 ? 0xb8402a : INK;
       const r = form.radius;

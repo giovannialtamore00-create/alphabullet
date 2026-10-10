@@ -1,5 +1,6 @@
 /** Runs a match: fixed 30 Hz sim steps, bots, local keyboard, renderer and HUD. */
 import { botInputs, type BotBrain } from '../sim/bots';
+import { speedMul } from '../sim/combat';
 import { DT } from '../sim/config';
 import { createWorld, step, type PlayerSetup } from '../sim/world';
 import type { PlayerInput, SimEvent, World } from '../sim/types';
@@ -149,7 +150,7 @@ export class Game {
 
   private applyPrediction(client: ClientSession): void {
     const me = this.world.players[this.localId];
-    const pred = client.predicted();
+    const pred = client.predicted(speedMul(me));
     if (pred && me.alive) {
       me.x = pred.x;
       me.y = pred.y;
@@ -206,7 +207,7 @@ export class Game {
           if (e.id === me) this.hud.toast(`Picked up ${e.letter}`);
           break;
         case 'bold':
-          if (e.id === me) this.hud.toast(`${e.letter} is now BOLD! +30% HP and damage while you use it`, true);
+          if (e.id === me) this.hud.toast(`${e.letter} is now BOLD! Bullets are 25% bigger`, true);
           break;
         case 'upgrade':
           if (e.id === me) this.hud.toast(`${e.letter} upgraded! Press SHIFT for CAPITAL ${e.letter}`, true);

@@ -74,3 +74,21 @@ Every judgment call, newest at the bottom. Format: `- [M<n>] decision. Why.`
 - [Patch: word powers] Own every letter of a word, then type it (each letter within 1 s of the previous) to fire its power. Letter keys still switch letters while typing. Repeated letters (PIERCE's two E's) need one copy. Words live in src/sim/words.ts (WORDS table); numbers in config.ts. All PLACEHOLDER: PIERCE 6 s of piercing bullets (each bullet hits a target once), cd 30 s; BOMB 300 px blast, 60 dmg (x0.5 vs players), cd 25 s; DASH 350 px teleport along last move direction, clamped to the map, cd 8 s.
 - [Patch: word powers] HUD: one quiet line above the CAPITAL box listing spellable words (UPPERCASE = ready, lowercase + seconds = cooldown); hidden when none. Bots don't use words yet. NET_VERSION 5 (input sends the word, snapshot sends pierce timer + word cooldowns).
 - [Patch: guest smoothness] The online guest's own (predicted) letter is now blended between its last two ticks with the local frame clock, like everything else; before, it was drawn at raw 30 Hz positions, so the camera and the whole screen juddered on 60+ Hz displays. Teleports over 200 px (DASH, respawn) still snap. Measured at 60 fps: frame-to-frame speed wobble 1.01 -> 0.05.
+
+## [Balance patch 2026-10-10]
+- Damage +30% (baseDps 60.84), fog waits x1.3, mob spawn growth 1.15 -> 1.18/min, speed 340 -> 374, PvP mul 0.5 -> 0.6, CAPITAL duration 20 -> 13 s.
+- Levels swapped: Lv1 BOLD at 400 XP, Lv2 CAPITAL at 1200 XP (user chose a plain swap, no new level). BOLD = bullets 25% bigger only; BOLD HP and damage bonuses removed.
+- Letters: 3 new letters every 10 s while fewer than 16 lie on the ground (cap 16 is a PLACEHOLDER); old "refill at 4 left after 120 s" rule removed. Game still starts with 8 on the ground.
+- O, A, I, E: 4 copies each (60 copies total) and drawn 15% more often.
+- B, D, O no longer shoot (data flag noShoot in glyphs.ts); C and Q still do.
+- Unit tests that depended on random start letters now use seed 6 (words) because the extra vowel copies changed the random draws.
+
+## [New word powers 2026-10-10]
+- Added BOUNCE FREEZE ERASE VOID SPLASH DISARM SPEED LIFE ZAP SPIN FLIP MAGNET (a half-done earlier attempt was kept and finished; PIERCE/BOMB/DASH unchanged). Timers live in Player.fx; network version 7 (snapshot carries fx timers, slow, disarm, splash, black holes, bullet effect flags).
+- PLACEHOLDERS (you gave durations only): cooldowns 25-60 s, ERASE radius 200, VOID radius 450 / pull 120 px/s at edge to 800 at centre, ZAP range 170 / 2 jumps / 50% damage, MAGNET radius 1000, SPLASH bot sight x0.4.
+- VOID kills through the normal death path: a swallowed player loses the active letter and one life (not instant elimination); the caster is immune to its own hole; spawn-protected players are skipped.
+- BOUNCE: a bounced bullet gets a new id so guests receive its new direction. Bullets bounce twice (map edge or target) and live at least 0.35 s after a bounce.
+- SPLASH: the screen ink is a CSS overlay at about 60% cover that fades linearly over 5 s; bots hit by it only see enemies at 40% range.
+- Shield ripple visuals ignore SPIN/FLIP (the shield hit test does use the pose).
+- PUSH (added): radius 400, shoves mobs and enemy players 350 px straight away (clamped to map), cooldown 15 s. All placeholders.
+- Renamed words for letter balance: SPIN->WHIRL, SPEED->QUICK, SPLASH->SQUIRT, added PUSH (effects unchanged).

@@ -35,7 +35,8 @@ function teardown(): void {
 function menu(): void {
   teardown();
   document.body.classList.add('in-menu');
-  showMenu({ onPlay: startSolo, onHost: hostFlow, onJoin: () => joinFlow(), online: true });
+  const r = savedRejoin();
+  showMenu({ onPlay: startSolo, onHost: hostFlow, onJoin: () => joinFlow(), online: true, rejoin: r ? { code: r.code, go: () => rejoinFlow(r) } : undefined });
 }
 
 function botNames(seed: number, taken: string[]): string[] {
@@ -56,7 +57,7 @@ async function startMatch(setup: MatchSetup, opts: { onAgain: (() => void) | nul
   closeScreen();
   document.body.classList.remove('in-menu');
   const g = new Game(root, setup, {
-    onEnd: (w) => showEnd(w, setup.localId, { onAgain: opts.onAgain, onMenu: menu }),
+    onEnd: (w) => (clearRejoin(), showEnd(w, setup.localId, { onAgain: opts.onAgain, onMenu: menu })),
     onEscape: () => togglePause(),
   });
   game = g;
@@ -84,7 +85,12 @@ function togglePause(): void {
     return;
   }
   if (g.setup.solo) g.paused = true;
-  showPause({ solo: g.setup.solo, onResume: togglePause, onQuit: menu });
+  showPause({ solo: g.setup.solo, onResume: togglePause,
+    onQuit: () => {
+      clearRejoin(); // leaving on purpose
+      menu();
+    },
+  });
 }
 
 // ---------- Online ----------
@@ -115,6 +121,11 @@ function hostFlow(): void {
         const g = await startMatch({ seed, players, localId: 0, solo: false }, { onAgain: null });
         g.net.host = session;
         g.inputOverride = () => session.inputs();
+        session.onClientAway = (id, away) => {
+          const p = g.world.players[id];
+          p.god = away; // untouchable while the guest reconnects
+          g.hud.toast(away ? `${p.name} lost connection` : `${p.name} is back`);
+        };
         session.onClientLeft = (id) => {
           removePlayer(g.world, id);
           g.hud.toast(`${g.world.players[id].name} disconnected`);
@@ -126,46 +137,74 @@ function hostFlow(): void {
   }, menu);
 }
 
+// A guest remembers the match so a refresh or dropped connection can be undone from the menu.
+const REJOIN_KEY = 'alphabullet-rejoin';
+const REJOIN_MAX_AGE = 10 * 60 * 1000;
+interface Rejoin {
+  code: string;
+  name: string;
+  tok: string;
+  at: number;
+}
+function savedRejoin(): Rejoin | null {
+  try {
+    const r = JSON.parse(localStorage.getItem(REJOIN_KEY) ?? 'null') as Rejoin | null;
+    return r && r.tok && Date.now() - r.at < REJOIN_MAX_AGE ? r : null;
+  } catch {
+    return null;
+  }
+}
+const clearRejoin = () => localStorage.removeItem(REJOIN_KEY);
+
+/** Connect to a host. With `tok`, take back the slot in a match already running. Returns false on failure. */
+async function connectGuest(code: string, name: string, tok: string | undefined, onFail: (msg: string) => void): Promise<void> {
+  let joined: Awaited<ReturnType<typeof joinPeer>>;
+  try {
+    joined = await joinPeer(code);
+  } catch (e) {
+    onFail((e as Error).message);
+    return;
+  }
+  const client = new ClientSession(joined.conn, name, tok);
+  let ended = false;
+  netCleanup = () => {
+    ended = true;
+    client.close();
+    joined.close();
+  };
+  const update = tok ? () => {} : showLobby({ code, isHost: false, max: MAX_HUMANS, onLeave: menu });
+  client.onLobby = (names) => update(names);
+  client.onBye = (reason) => {
+    if (ended || game?.world.over) return;
+    ended = true;
+    clearRejoin();
+    teardown();
+    showNotice('Disconnected', reason, menu);
+  };
+  joined.conn.onClose(() => {
+    if (ended || game?.world.over) return;
+    ended = true;
+    teardown();
+    showNotice('Disconnected', 'Lost connection to the host. Use "Rejoin match" in the menu to get back in.', menu);
+  });
+  client.onStart = async (seed, players, you, token) => {
+    if (token) localStorage.setItem(REJOIN_KEY, JSON.stringify({ code, name, tok: token, at: Date.now() } satisfies Rejoin));
+    const g = await startMatch({ seed, players, localId: you, solo: false }, { onAgain: null });
+    g.enableClientMode(client);
+  };
+  client.join();
+}
+
+function rejoinFlow(r: Rejoin): void {
+  teardown();
+  void connectGuest(r.code, r.name, r.tok, (msg) => {
+    clearRejoin();
+    showNotice('Could not rejoin', msg, menu);
+  });
+}
+
 function joinFlow(error = ''): void {
-  showJoin(
-    async (code, name) => {
-      let joined: Awaited<ReturnType<typeof joinPeer>>;
-      try {
-        joined = await joinPeer(code);
-      } catch (e) {
-        joinFlow((e as Error).message);
-        return;
-      }
-      const client = new ClientSession(joined.conn, name);
-      let ended = false;
-      netCleanup = () => {
-        ended = true;
-        client.close();
-        joined.close();
-      };
-      const update = showLobby({ code, isHost: false, max: MAX_HUMANS, onLeave: menu });
-      client.onLobby = (names) => update(names);
-      client.onBye = (reason) => {
-        if (ended || game?.world.over) return;
-        ended = true;
-        teardown();
-        showNotice('Disconnected', reason, menu);
-      };
-      joined.conn.onClose(() => {
-        if (ended || game?.world.over) return;
-        ended = true;
-        teardown();
-        showNotice('Disconnected', 'Lost connection to the host. The match has ended.', menu);
-      });
-      client.onStart = async (seed, players, you) => {
-        const g = await startMatch({ seed, players, localId: you, solo: false }, { onAgain: null });
-        g.enableClientMode(client);
-      };
-      client.join();
-    },
-    menu,
-    error,
-  );
+  showJoin((code, name) => connectGuest(code, name, undefined, joinFlow), menu, error);
 }
 
 audio.startMusic();

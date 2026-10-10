@@ -83,6 +83,7 @@ export interface MenuActions {
   onHost: () => void;
   onJoin: () => void;
   online: boolean;
+  rejoin?: { code: string; go: () => void }; // a match this guest can get back into
 }
 
 export function showMenu(a: MenuActions): void {
@@ -110,7 +111,8 @@ export function showMenu(a: MenuActions): void {
       h(
         'div',
         { cls: 'menu-buttons' },
-        button('Play vs bots', a.onPlay, { cls: 'primary' }),
+        ...(a.rejoin ? [button(`Rejoin match (${a.rejoin.code})`, a.rejoin.go, { cls: 'primary' })] : []),
+        button('Play vs bots', a.onPlay, a.rejoin ? {} : { cls: 'primary' }),
         button('Host', a.onHost, { disabled: !a.online, note: a.online ? '' : 'coming soon' }),
         button('Join', a.onJoin, { disabled: !a.online, note: a.online ? '' : 'coming soon' }),
         button('Settings', () => showSettings(() => showMenu(a))),

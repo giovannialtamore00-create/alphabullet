@@ -1,4 +1,4 @@
-import { BOLD, PLAYER_HP, XP } from './config';
+import { FREEZE, PLAYER_HP, SPEED, SPIN, XP } from './config';
 import { getForm, shieldCovers, type DerivedForm } from './glyphDerive';
 import type { LetterCopy, Mob, Player, World } from './types';
 
@@ -11,13 +11,55 @@ export function activeForm(w: World, p: Player): DerivedForm | null {
   return c ? getForm(c.letter, c.capitalTimer > 0) : null;
 }
 
+/** SPIN/FLIP pose of the glyph: mirrored top-to-bottom (FLIP), then turned by `rot` radians (SPIN). */
+export interface Pose {
+  flip: boolean;
+  rot: number;
+}
+export function glyphPose(p: Player): Pose {
+  const rot = p.fx.spin > 0 ? (SPIN.duration - p.fx.spin) * SPIN.revPerSec * Math.PI * 2 : 0;
+  return { flip: p.fx.flip > 0, rot };
+}
+
+/** Glyph-space point or direction -> world space under a pose. */
+export function posePoint(pose: Pose, x: number, y: number): [number, number] {
+  const fy = pose.flip ? -y : y;
+  if (!pose.rot) return [x, fy];
+  const c = Math.cos(pose.rot);
+  const s = Math.sin(pose.rot);
+  return [x * c - fy * s, x * s + fy * c];
+}
+
+/** World angle (deg) -> glyph-space angle (deg) under a pose, for shield arcs. */
+export function poseAngleToGlyph(pose: Pose, deg: number): number {
+  let a = deg - (pose.rot * 180) / Math.PI;
+  if (pose.flip) a = -a;
+  return ((a % 360) + 360) % 360;
+}
+
+/** Glyph-space angle (deg) -> world angle (deg), for drawing shield arcs. */
+export function poseAngleToWorld(pose: Pose, deg: number): number {
+  return (pose.flip ? -deg : deg) + (pose.rot * 180) / Math.PI;
+}
+
+/** Movement speed multiplier: SPEED word and FREEZE slow. */
+export function speedMul(p: Player): number {
+  return (p.fx.speed > 0 ? SPEED.mul : 1) * (1 - p.slow);
+}
+
+/** FREEZE hit: +5% slow (max 20%), timer refreshed. */
+export function addSlow(t: { slow?: number; slowT?: number }): void {
+  t.slow = Math.min(FREEZE.max, (t.slow ?? 0) + FREEZE.perHit);
+  t.slowT = FREEZE.slowTime;
+}
+
 export function playerRadius(w: World, p: Player): number {
   return activeForm(w, p)?.radius ?? 18;
 }
 
-/** Max HP of one letter's own pool (x1.3 if it is BOLD). */
-export function copyMaxHp(c: LetterCopy): number {
-  return PLAYER_HP * (c.bold ? BOLD.hpMul : 1);
+/** Max HP of one letter's own pool. */
+export function copyMaxHp(_c: LetterCopy): number {
+  return PLAYER_HP;
 }
 
 /**
@@ -33,32 +75,19 @@ export function selectLetter(w: World, p: Player, id: number): void {
   p.maxHp = copyMaxHp(c);
 }
 
-/** Max HP follows the active letter (x1.3 if it is BOLD). HP scales proportionally on change. */
-export function refreshMaxHp(w: World, p: Player): void {
-  const c = activeCopy(w, p);
-  const max = PLAYER_HP * (c?.bold ? BOLD.hpMul : 1);
-  if (max !== p.maxHp) {
-    p.hp = (p.hp * max) / p.maxHp;
-    p.maxHp = max;
-  }
-}
-
-/** Add XP to the copy that dealt damage, if its owner still holds it. Level 1 = CAPITAL, level 2 = BOLD. */
+/** Add XP to the copy that dealt damage, if its owner still holds it. Level 1 = BOLD, level 2 = CAPITAL. */
 export function creditXp(w: World, attacker: number | null, copyId: number | null, amount: number): void {
   if (attacker === null || copyId === null) return;
   const c = w.copies[copyId];
-  if (!c || c.owner !== attacker || c.bold) return;
+  if (!c || c.owner !== attacker || c.upgraded) return;
   c.xp += amount;
-  if (!c.upgraded && c.xp >= XP.threshold) {
-    c.upgraded = true;
-    w.events.push({ t: 'upgrade', id: attacker, letter: c.letter });
-  }
-  if (c.upgraded && c.xp >= XP.boldThreshold) {
+  if (!c.bold && c.xp >= XP.threshold) {
     c.bold = true;
     w.events.push({ t: 'bold', id: attacker, letter: c.letter });
-    const p = w.players[attacker];
-    if (p.active === c.id) refreshMaxHp(w, p);
-    else c.hp *= BOLD.hpMul;
+  }
+  if (c.bold && c.xp >= XP.capitalThreshold) {
+    c.upgraded = true;
+    w.events.push({ t: 'upgrade', id: attacker, letter: c.letter });
   }
 }
 
@@ -80,7 +109,7 @@ export function damagePlayer(
     const form = activeForm(w, p);
     if (form && form.shieldCap > 0 && p.shieldBudget > 0) {
       const angle = ((Math.atan2(sy - p.y, sx - p.x) * 180) / Math.PI + 360) % 360;
-      if (shieldCovers(form, angle)) {
+      if (shieldCovers(form, poseAngleToGlyph(glyphPose(p), angle))) {
         const absorbed = Math.min(amount, p.shieldBudget);
         p.shieldBudget -= absorbed;
         amount -= absorbed;

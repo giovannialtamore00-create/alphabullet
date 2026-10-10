@@ -30,6 +30,8 @@ export interface LetterGlyph {
   lower: GlyphForm;
   upper: GlyphForm;
   desc: string;
+  /** Pure shield letters (B, D, O) do not shoot; only C and Q, which have stroke ends, do. */
+  noShoot?: boolean;
 }
 
 type Part =
@@ -85,7 +87,8 @@ export const LETTERS: Record<string, LetterGlyph> = {
     upper: F([S(l(-0.38, 0.5, 0, -0.5, 0.38, 0.5)), S(l(-0.22, 0.1, 0.22, 0.1))]),
   },
   B: {
-    desc: 'Shield letter: double bowl guards the right side.',
+    desc: 'Shield letter: double bowl guards the right side. Does not shoot.',
+    noShoot: true,
     lower: F([S(l(-0.25, -0.5, -0.25, 0.45)), S(a(0, 0.2, 0.25, 0, 360))], [sh(0, 0.2, 0.25, -90, 90)]),
     upper: F(
       [
@@ -102,7 +105,8 @@ export const LETTERS: Record<string, LetterGlyph> = {
     upper: F([S(a(0.05, 0, 0.45, 45, 315))], [sh(0.05, 0, 0.45, 45, 315)]),
   },
   D: {
-    desc: 'Shield letter: strong one-sided shield on its curve.',
+    desc: 'Shield letter: strong one-sided shield on its curve. Does not shoot.',
+    noShoot: true,
     lower: F([S(a(-0.05, 0.2, 0.25, 0, 360)), S(l(0.2, -0.5, 0.2, 0.45))], [sh(-0.05, 0.2, 0.25, 90, 270)]),
     upper: F(
       [S(l(-0.3, -0.5, -0.3, 0.5)), S(l(-0.3, -0.5, -0.05, -0.5), a(-0.05, 0, 0.5, -90, 90), l(-0.05, 0.5, -0.3, 0.5))],
@@ -164,7 +168,8 @@ export const LETTERS: Record<string, LetterGlyph> = {
     upper: F([S(l(-0.32, 0.5, -0.32, -0.5, 0.32, 0.5, 0.32, -0.5))]),
   },
   O: {
-    desc: 'Shield letter: all-round shield, weak pulses in four directions.',
+    desc: 'Shield letter: all-round shield. Does not shoot.',
+    noShoot: true,
     lower: F([S(a(0, 0.05, 0.3, 0, 360))], [sh(0, 0.05, 0.3, 0, 360)]),
     upper: F([S(a(0, 0, 0.45, 0, 360))], [sh(0, 0, 0.45, 0, 360)]),
   },

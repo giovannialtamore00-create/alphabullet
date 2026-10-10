@@ -4,7 +4,10 @@ import {
   CAPITAL_DURATION,
   CAPITAL_TEMP_HP_FRAC,
   BOLD,
+  BOUNCE,
   BULLET,
+  DISARM,
+  ERASE,
   DT,
   MAP_SIZE,
   PLAYER_HP,
@@ -15,9 +18,11 @@ import {
   SPATIAL_CELL,
   START_LETTERS,
   SWITCH_COOLDOWN,
+  VOID,
   XP,
+  ZAP,
 } from './config';
-import { activeCopy, activeForm, creditXp, damageMob, damagePlayer, playerRadius, selectLetter } from './combat';
+import { activeCopy, activeForm, addSlow, creditXp, damageMob, damagePlayer, glyphPose, playerRadius, posePoint, selectLetter, speedMul } from './combat';
 import { createFog, updateFog } from './fog';
 import { useWord } from './words';
 
@@ -25,7 +30,7 @@ import { createCopies, drawFromPool, dropCopy, dropLetters, findSpot, giveCopy, 
 import { makeMob, updateMobs } from './mobs';
 import { Rng } from './rng';
 import { SpatialHash } from './spatialHash';
-import { NO_INPUT, type Mob, type Player, type PlayerInput, type World } from './types';
+import { NO_INPUT, TIMED_FX, noFx, type Bullet, type Mob, type Player, type PlayerInput, type World } from './types';
 
 export interface PlayerSetup {
   name: string;
@@ -43,6 +48,7 @@ export function createWorld(seed: number, setups: PlayerSetup[], opts: { mobs?: 
     copies: createCopies(),
     mobs: [],
     bullets: [],
+    voids: [],
     fog: createFog(rng),
     wave: { timer: null, spots: [] },
     events: [],
@@ -86,7 +92,11 @@ export function createWorld(seed: number, setups: PlayerSetup[], opts: { mobs?: 
       placement: null,
       god: false,
       wordCd: {},
-      pierceTimer: 0,
+      fx: noFx(),
+      slow: 0,
+      slowT: 0,
+      disarmT: 0,
+      splashT: 0,
       faceX: 0,
       faceY: -1,
     };
@@ -113,7 +123,7 @@ function endCapital(w: World, p: Player): void {
 }
 
 /** One tick of 8-way movement, clamped to the map. Shared with client-side prediction. */
-export function moveStep(x: number, y: number, mxIn: number, myIn: number): { x: number; y: number } {
+export function moveStep(x: number, y: number, mxIn: number, myIn: number, mul = 1): { x: number; y: number } {
   let mx = Math.sign(mxIn);
   let my = Math.sign(myIn);
   if (mx && my) {
@@ -121,8 +131,8 @@ export function moveStep(x: number, y: number, mxIn: number, myIn: number): { x:
     my *= Math.SQRT1_2;
   }
   return {
-    x: Math.min(MAP_SIZE - 20, Math.max(20, x + mx * PLAYER_SPEED * DT)),
-    y: Math.min(MAP_SIZE - 20, Math.max(20, y + my * PLAYER_SPEED * DT)),
+    x: Math.min(MAP_SIZE - 20, Math.max(20, x + mx * PLAYER_SPEED * mul * DT)),
+    y: Math.min(MAP_SIZE - 20, Math.max(20, y + my * PLAYER_SPEED * mul * DT)),
   };
 }
 
@@ -151,7 +161,11 @@ function applyInput(w: World, p: Player, inp: PlayerInput): void {
     w.events.push({ t: 'capital', id: p.id, letter: c.letter, on: true });
   }
   for (const k in p.wordCd) p.wordCd[k] = Math.max(0, p.wordCd[k] - DT);
-  p.pierceTimer = Math.max(0, p.pierceTimer - DT);
+  for (const k of TIMED_FX) p.fx[k] = Math.max(0, p.fx[k] - DT);
+  p.disarmT = Math.max(0, p.disarmT - DT);
+  p.splashT = Math.max(0, p.splashT - DT);
+  p.slowT = Math.max(0, p.slowT - DT);
+  if (p.slowT <= 0) p.slow = 0;
   if (inp.mx || inp.my) {
     const len = Math.hypot(inp.mx, inp.my);
     p.faceX = inp.mx / len;
@@ -160,7 +174,7 @@ function applyInput(w: World, p: Player, inp: PlayerInput): void {
   if (inp.word) useWord(w, p, inp.word);
   // After typing a word, go back to the letter held before it (ignores the switch cooldown).
   if (inp.word && inp.wordBack && p.alive) switchLetter(w, p, inp.wordBack);
-  const pos = moveStep(p.x, p.y, inp.mx, inp.my);
+  const pos = moveStep(p.x, p.y, inp.mx, inp.my, speedMul(p));
   p.x = pos.x;
   p.y = pos.y;
   const form = activeForm(w, p);
@@ -187,13 +201,17 @@ function fire(w: World): void {
   for (const p of w.players) {
     if (!p.alive || p.active === null) continue;
     const form = activeForm(w, p)!;
+    if (p.disarmT > 0) continue;
     const b = form.bullet;
+    const pose = glyphPose(p);
     p.fireTimer -= DT;
     while (p.fireTimer <= 0) {
       p.fireTimer += 1 / b.rate;
-      const boldMul = w.copies[p.active].bold ? BOLD.dmgMul : 1;
+      const boldR = w.copies[p.active].bold ? BOLD.bulletRadiusMul : 1;
       for (const e of form.emitters) {
-        const ang0 = Math.atan2(e.dy, e.dx);
+        const [edx, edy] = posePoint(pose, e.dx, e.dy);
+        const [ex, ey] = posePoint(pose, e.x * form.size, e.y * form.size);
+        const ang0 = Math.atan2(edy, edx);
         const spread = e.pellets > 1 ? (BULLET.dotSpreadDeg * Math.PI) / 180 : 0;
         for (let k = 0; k < e.pellets; k++) {
           const ang = e.pellets > 1 ? ang0 - spread / 2 + (spread * k) / (e.pellets - 1) : ang0;
@@ -201,15 +219,19 @@ function fire(w: World): void {
             id: w.nextId++,
             owner: p.id,
             copyId: p.active,
-            x: p.x + e.x * form.size,
-            y: p.y + e.y * form.size,
-            vx: e.pellets > 1 ? Math.cos(ang) * b.speed : e.dx * b.speed,
-            vy: e.pellets > 1 ? Math.sin(ang) * b.speed : e.dy * b.speed,
-            r: b.radius,
-            dmg: (b.dmg * e.dmgMul * boldMul) / e.pellets,
+            x: p.x + ex,
+            y: p.y + ey,
+            vx: e.pellets > 1 ? Math.cos(ang) * b.speed : edx * b.speed,
+            vy: e.pellets > 1 ? Math.sin(ang) * b.speed : edy * b.speed,
+            r: b.radius * boldR,
+            dmg: (b.dmg * e.dmgMul) / e.pellets,
             life: e.range / b.speed,
             capital: form.capital,
-            pierce: p.pierceTimer > 0,
+            pierce: p.fx.pierce > 0,
+            bounce: p.fx.bounce > 0 ? BOUNCE.bounces : 0,
+            freeze: p.fx.freeze > 0,
+            disarm: p.fx.disarm > 0,
+            zap: p.fx.zap > 0,
           });
         }
       }
@@ -223,17 +245,68 @@ const targetHash = new SpatialHash<Target>(SPATIAL_CELL);
 const found: Target[] = [];
 const MAX_TARGET_R = 48;
 
+/** ZAP: from the hit target, jump to the nearest unhit targets in range, hurting each for a fraction of the bullet. */
+function zapChain(w: World, b: Bullet, from: Target): void {
+  const visited = new Set<unknown>([from.mob ?? from.player]);
+  const pts: number[] = [];
+  let cx = from.x;
+  let cy = from.y;
+  for (let jump = 0; jump < ZAP.jumps; jump++) {
+    let best: Target | null = null;
+    let bestD = ZAP.range;
+    const cands: Target[] = [];
+    for (const m of w.mobs) if (m.hp > 0) cands.push({ x: m.x, y: m.y, r: m.r, mob: m, player: null });
+    for (const q of w.players) if (q.alive && q.id !== b.owner) cands.push({ x: q.x, y: q.y, r: 0, mob: null, player: q });
+    for (const t of cands) {
+      if (visited.has(t.mob ?? t.player)) continue;
+      const d = Math.hypot(t.x - cx, t.y - cy);
+      if (d < bestD) {
+        bestD = d;
+        best = t;
+      }
+    }
+    if (!best) break;
+    visited.add(best.mob ?? best.player);
+    const dmg = b.dmg * ZAP.dmgMul;
+    const dealt = best.mob ? damageMob(w, best.mob, dmg, b.owner, b.copyId) : damagePlayer(w, best.player!, dmg * PVP_DAMAGE_MUL, cx, cy, b.owner);
+    w.players[b.owner].damageDealt += dealt;
+    creditXp(w, b.owner, b.copyId, dealt * XP.perDamage);
+    pts.push(best.x, best.y);
+    cx = best.x;
+    cy = best.y;
+  }
+  if (pts.length) w.events.push({ t: 'zap', x: from.x, y: from.y, pts, by: b.owner });
+}
+
+/** Bullet bounced: keep it alive a little longer so a bounce is visible, one bounce used. */
+function bounced(w: World, b: Bullet): void {
+  b.id = w.nextId++; // new id: the host resends it to guests with its new direction
+  b.bounce = (b.bounce ?? 0) - 1;
+  b.life = Math.max(b.life, BOUNCE.minLife);
+}
+
 function updateBullets(w: World): void {
   targetHash.clear();
   for (const m of w.mobs) if (m.hp > 0) targetHash.insert({ x: m.x, y: m.y, r: m.r, mob: m, player: null });
   for (const p of w.players)
     if (p.alive) targetHash.insert({ x: p.x, y: p.y, r: playerRadius(w, p), mob: null, player: p });
+  const erasers = w.players.filter((p) => p.alive && p.fx.erase > 0);
   let j = 0;
   for (const b of w.bullets) {
     b.x += b.vx * DT;
     b.y += b.vy * DT;
     b.life -= DT;
-    if (b.life <= 0 || b.x < 0 || b.y < 0 || b.x > MAP_SIZE || b.y > MAP_SIZE) continue;
+    if (b.life <= 0) continue;
+    if (b.x < 0 || b.y < 0 || b.x > MAP_SIZE || b.y > MAP_SIZE) {
+      if (!b.bounce || b.bounce <= 0) continue;
+      if (b.x < 0 || b.x > MAP_SIZE) b.vx = -b.vx;
+      if (b.y < 0 || b.y > MAP_SIZE) b.vy = -b.vy;
+      b.x = Math.min(MAP_SIZE, Math.max(0, b.x));
+      b.y = Math.min(MAP_SIZE, Math.max(0, b.y));
+      bounced(w, b);
+    }
+    // ERASE: enemy bullets inside the circle of a player with the effect vanish.
+    if (erasers.some((e) => e.id !== b.owner && (e.x - b.x) ** 2 + (e.y - b.y) ** 2 <= ERASE.radius * ERASE.radius)) continue;
     let hit = false;
     targetHash.query(b.x, b.y, b.r + MAX_TARGET_R, found);
     for (const t of found) {
@@ -248,10 +321,26 @@ function updateBullets(w: World): void {
         : damagePlayer(w, t.player!, b.dmg * PVP_DAMAGE_MUL, b.x - b.vx * DT, b.y - b.vy * DT, b.owner);
       shooter.damageDealt += dealt;
       creditXp(w, b.owner, b.copyId, dealt * XP.perDamage);
+      if (b.freeze) addSlow(t.mob ?? t.player!);
+      if (b.disarm && t.player) t.player.disarmT = DISARM.lock;
+      if (b.zap) zapChain(w, b, t);
       if (b.pierce) {
         // PIERCE: keep flying, but never hit the same target twice.
         (b.hitIds ??= []).push(tid);
         continue;
+      }
+      if (b.bounce && b.bounce > 0) {
+        // BOUNCE: reflect off the target (away from its centre) and fly on.
+        const nx = b.x - t.x;
+        const ny = b.y - t.y;
+        const len = Math.hypot(nx, ny) || 1;
+        const dot = (b.vx * nx + b.vy * ny) / (len * len);
+        b.vx -= 2 * dot * nx;
+        b.vy -= 2 * dot * ny;
+        b.x = t.x + (nx / len) * (t.r + b.r + 1);
+        b.y = t.y + (ny / len) * (t.r + b.r + 1);
+        bounced(w, b);
+        break;
       }
       hit = true;
       break;
@@ -259,6 +348,44 @@ function updateBullets(w: World): void {
     if (!hit) w.bullets[j++] = b;
   }
   w.bullets.length = j;
+}
+
+/** VOID: after arming, pull everything in range toward the centre; at the end swallow what is left inside. */
+function updateVoids(w: World): void {
+  const r2 = VOID.radius * VOID.radius;
+  w.voids = w.voids.filter((h) => {
+    h.t += DT;
+    if (h.t < VOID.arm) return true;
+    const end = h.t >= VOID.arm + VOID.pull;
+    const pull = (o: { x: number; y: number }): boolean => {
+      const dx = h.x - o.x;
+      const dy = h.y - o.y;
+      const d = Math.hypot(dx, dy);
+      if (d * d > r2) return false;
+      if (!end && d > 1) {
+        const f = d / VOID.radius;
+        const move = Math.min(d, (VOID.pullCore + (VOID.pullEdge - VOID.pullCore) * f) * DT);
+        o.x += (dx / d) * move;
+        o.y += (dy / d) * move;
+      }
+      return true;
+    };
+    let eaten = 0;
+    for (const m of w.mobs)
+      if (m.hp > 0 && pull(m) && end) {
+        damageMob(w, m, m.hp + 1, h.owner, null);
+        eaten++;
+      }
+    for (const p of w.players)
+      if (p.alive && p.id !== h.owner && pull(p) && end && !p.god && p.spawnProt <= 0) {
+        p.hp = 0;
+        p.tempHp = 0;
+        p.lastDamager = h.owner;
+        eaten++;
+      }
+    if (end) w.events.push({ t: 'voidEat', hole: h.id, x: h.x, y: h.y, n: eaten });
+    return !end;
+  });
 }
 
 /** Letter-loss respawn keeps this distance from other players when it can. */
@@ -348,6 +475,7 @@ export function step(w: World, inputs: Record<number, PlayerInput>): void {
   updateCopies(w);
   fire(w);
   updateBullets(w);
+  updateVoids(w);
   updateMobs(w, DT);
   updateFog(w, DT);
   updatePickups(w);
@@ -386,7 +514,8 @@ export function debugGiveLetter(w: World, id: number, letter: string): boolean {
 export function debugUpgradeActive(w: World, id: number): void {
   const c = activeCopy(w, w.players[id]);
   if (c && !c.upgraded) {
-    c.xp = XP.threshold;
+    c.xp = XP.capitalThreshold;
+    c.bold = true;
     c.upgraded = true;
     c.capitalCd = 0;
     w.events.push({ t: 'upgrade', id, letter: c.letter });
@@ -396,8 +525,7 @@ export function debugUpgradeActive(w: World, id: number): void {
 export function debugBoldActive(w: World, id: number): void {
   const c = activeCopy(w, w.players[id]);
   if (!c) return;
-  debugUpgradeActive(w, id);
-  creditXp(w, id, c.id, Math.max(0, XP.boldThreshold - c.xp));
+  creditXp(w, id, c.id, Math.max(0, XP.threshold - c.xp));
 }
 
 export function debugSpawnMobs(w: World, x: number, y: number, count: number, kind?: string): void {
