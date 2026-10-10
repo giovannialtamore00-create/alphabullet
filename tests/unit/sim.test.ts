@@ -492,3 +492,16 @@ describe('drop decay and fog spawns', () => {
     }
   });
 });
+
+describe('letter draw weights and mob cap (M20)', () => {
+  it('owned letters are drawn less, underused consonants less still', async () => {
+    const { testWorld } = await import('./helpers');
+    const { drawFromPool } = await import('../../src/sim/letters');
+    const w = testWorld(2);
+    for (const c of w.copies) c.state = c.letter === 'Z' || c.letter === 'W' || c.letter === 'M' ? 'pool' : 'owned';
+    for (const c of w.copies.filter((k) => k.letter === 'M').slice(0, 1)) c.state = 'owned'; // M now has fewer pool copies
+    const n = { Z: 0, W: 0, M: 0 } as Record<string, number>;
+    for (let i = 0; i < 3000; i++) n[drawFromPool(w)!.letter]++;
+    expect(n.W).toBeLessThan(n.Z); // W is underused: x0.85
+  });
+});

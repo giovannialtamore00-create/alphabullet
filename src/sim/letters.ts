@@ -14,9 +14,12 @@ import {
   VOWELS,
   VOWEL_COPIES,
   VOWEL_WEIGHT,
+  UNDERUSED_WEIGHT,
+  OWNED_PENALTY,
 } from './config';
 import { copyMaxHp, playerRadius } from './combat';
 import { LETTER_KEYS } from './glyphs';
+import { WORDS } from './words';
 import type { LetterCopy, Player, World } from './types';
 
 const MAP_MARGIN = 250;
@@ -48,12 +51,28 @@ export function ownsLetter(w: World, p: Player, letter: string): boolean {
   return p.letters.some((id) => w.copies[id].letter === letter);
 }
 
+let underused: Set<string> | null = null;
+/** Consonants that appear in at most one word power (computed lazily: words.ts imports this module). */
+function underusedConsonants(): Set<string> {
+  if (!underused) {
+    const count = new Map<string, number>();
+    for (const d of WORDS) for (const ch of new Set(d.word)) count.set(ch, (count.get(ch) ?? 0) + 1);
+    underused = new Set([...'BCDFGHJKLMNPQRSTVWXYZ'].filter((ch) => (count.get(ch) ?? 0) <= 1));
+  }
+  return underused;
+}
+
 /** Random copy still in the pool, skipping letters in `exclude`. */
 export function drawFromPool(w: World, exclude: Set<string> = new Set()): LetterCopy | null {
   const avail = w.copies.filter((c) => c.state === 'pool' && !exclude.has(c.letter));
   if (!avail.length) return null;
-  // Vowels are 15% more likely to be drawn.
-  const wt = (c: LetterCopy) => (VOWELS.includes(c.letter) ? VOWEL_WEIGHT : 1);
+  // Vowels are 15% more likely; letters nobody (or few) own come first; consonants rarely used by words are 15% rarer.
+  const owned = new Map<string, number>();
+  for (const c of w.copies) if (c.state === 'owned') owned.set(c.letter, (owned.get(c.letter) ?? 0) + 1);
+  const wt = (c: LetterCopy) =>
+    (VOWELS.includes(c.letter) ? VOWEL_WEIGHT : 1) *
+    (underusedConsonants().has(c.letter) ? UNDERUSED_WEIGHT : 1) /
+    (1 + OWNED_PENALTY * (owned.get(c.letter) ?? 0));
   let roll = w.rng.next() * avail.reduce((a, c) => a + wt(c), 0);
   for (const c of avail) {
     roll -= wt(c);

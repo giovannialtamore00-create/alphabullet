@@ -51,3 +51,7 @@
 - Mob spawn rate flat at 2x the old t=0 rate (no escalation). First fog wait 30s. baseRate 6 -> 6.9 (+15% fire rate). All XP +25%. Damage absorbed by a shield now gives XP to the active shield letter.
 - Tests updated (levels spawn test, bots pickup test delays fog). 113 unit tests pass.
 - Open: bots flee to the safe zone from 30s; check bot behavior early.
+
+## M20 patch (2026-10-10, needs playtest)
+- Lowercase B/D shoot from stem ends (capital B/D and O silent). Letter draw: owned letters weighted 1/(1+2*owned); G/J/V/W (<=1 word) x0.85. Mob spawn x2 again (MOB_SPAWN_MUL 3.4). Global mob cap = 60 per 1600x900 of min(map, fog circle) area; per-player 60 kept; old 300 cap removed.
+- 114 unit tests pass.

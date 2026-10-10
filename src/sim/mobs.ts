@@ -2,7 +2,8 @@
 import {
   MAP_SIZE,
   MOB_CAP_PER_PLAYER,
-  MOB_CAP_TOTAL,
+  MOB_CAP_PER_SCREEN,
+  SCREEN_AREA,
   MOB_CONTACT_COOLDOWN,
   MOB_DESPAWN_DIST,
   MOB_SPAWN_DIST,
@@ -58,7 +59,9 @@ function pickKind(w: World): string {
 
 function spawnMobs(w: World, dt: number): void {
   const alive = w.players.filter((p) => p.alive);
-  const cap = Math.min(MOB_CAP_TOTAL, MOB_CAP_PER_PLAYER * alive.length);
+  // Global cap follows walkable space: map area, or the fog circle once it is smaller.
+  const walkable = Math.min(MAP_SIZE * MAP_SIZE, Math.PI * w.fog.r * w.fog.r);
+  const cap = Math.min((MOB_CAP_PER_SCREEN * walkable) / SCREEN_AREA, MOB_CAP_PER_PLAYER * alive.length);
   const rate = mobSpawnRate(w.time);
   const ground = w.copies.filter((c) => c.state === 'ground');
   for (const p of alive) {

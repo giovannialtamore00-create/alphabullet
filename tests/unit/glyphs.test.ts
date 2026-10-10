@@ -23,13 +23,17 @@ describe('glyph data and derivation', () => {
 
   it('every form can fire', () => {
     for (const k of LETTER_KEYS) {
-      if (LETTERS[k].noShoot) continue;
-      for (const cap of [false, true]) expect(getForm(k, cap).emitters.length).toBeGreaterThan(0);
+      for (const cap of [false, true]) {
+        if (LETTERS[k].noShoot === true || (cap && LETTERS[k].noShoot)) continue;
+        expect(getForm(k, cap).emitters.length).toBeGreaterThan(0);
+      }
     }
   });
 
-  it('B, D and O do not shoot; C and Q still do', () => {
-    for (const k of ['B', 'D', 'O']) for (const cap of [false, true]) expect(getForm(k, cap).emitters).toHaveLength(0);
+  it('CAPITAL B, D, O do not shoot; lowercase B and D do; C and Q always do', () => {
+    for (const k of ['B', 'D', 'O']) expect(getForm(k, true).emitters).toHaveLength(0);
+    expect(getForm('O', false).emitters).toHaveLength(0); // O is silent in both forms
+    for (const k of ['B', 'D']) expect(getForm(k, false).emitters.length).toBeGreaterThanOrEqual(2);
     for (const k of ['C', 'Q']) for (const cap of [false, true]) expect(getForm(k, cap).emitters.length).toBeGreaterThan(0);
   });
 
@@ -61,7 +65,7 @@ describe('glyph data and derivation', () => {
   it('capital forms hit harder and shields get stronger', () => {
     for (const k of LETTER_KEYS) {
       const lo = getForm(k, false), up = getForm(k, true);
-      if (!lo.emitters.length) continue; // B, D, O do not shoot
+      if (!lo.emitters.length || !up.emitters.length) continue; // O never shoots, capital B and D do not
       const dps = (f: typeof lo) => f.bullet.dmg * f.bullet.rate * f.emitters.length;
       expect(dps(up)).toBeGreaterThan(dps(lo));
       expect(up.bullet.radius).toBeGreaterThan(lo.bullet.radius);

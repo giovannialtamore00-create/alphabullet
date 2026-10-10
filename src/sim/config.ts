@@ -54,6 +54,9 @@ export const COPIES_PER_LETTER = 2;
 export const VOWELS = ['O', 'A', 'I', 'E'];
 export const VOWEL_COPIES = 4;
 export const VOWEL_WEIGHT = 1.15;
+/** Draw weight x0.85 for consonants used by at most one word power; each owned copy of a letter divides its weight by (1 + OWNED_PENALTY * owned). */
+export const UNDERUSED_WEIGHT = 0.85;
+export const OWNED_PENALTY = 2;
 /** Every `every` seconds `count` pool letters appear on the map, up to `groundCap` lying on the ground. */
 export const LETTER_SPAWN = { every: 20, count: 3, groundCap: 16 }; // groundCap PLACEHOLDER
 export const GROUND_LETTERS = 8;
@@ -101,20 +104,22 @@ export const MOB_TIERS: Record<'slender' | 'medium' | 'chunky', MobTier> = {
 };
 export const MOB_CONTACT_COOLDOWN = 0.8;
 export const MOB_CAP_PER_PLAYER = 60;
-export const MOB_CAP_TOTAL = 300;
+/** Coexisting mobs allowed per screen-sized patch (1600x900) of walkable space; the global cap scales with map/fog area. */
+export const MOB_CAP_PER_SCREEN = 60;
+export const SCREEN_AREA = 1600 * 900;
 export const MOB_SPAWN_DIST: [number, number] = [1050, 1300];
 export const MOB_DESPAWN_DIST = 2600;
 /** Spawns/sec per alive player at time t (seconds): +15% per minute, compounding (playtest 4). */
 export const MOB_SPAWN_GROWTH_PER_MIN = 1.18; // was 1.15, escalation +20% (patch)
 export const MOB_SPAWN_RATE_CAP = 3; // PLACEHOLDER: per-player cap, reached at ~11.5 min
-export const MOB_SPAWN_MUL = 1.7; // +70% spawn rate (patch)
+export const MOB_SPAWN_MUL = 3.4; // +70% (patch), then +100% (M20)
 /** Extra spawns early (+30% at t=0) fading to fewer late (-30% from 10 min on), linear in between. */
 export const MOB_SPAWN_EARLY_MUL = 1.3;
 export const MOB_SPAWN_LATE_MUL = 0.7;
 export const MOB_SPAWN_LATE_AT = 600;
 export const mobPhaseMul = (t: number) => MOB_SPAWN_EARLY_MUL + (MOB_SPAWN_LATE_MUL - MOB_SPAWN_EARLY_MUL) * Math.min(1, Math.max(0, t / MOB_SPAWN_LATE_AT));
-/** Flat rate: the old t=0 rate doubled (+100%), no escalation over time (patch). */
-export const mobSpawnRate = (_t: number) => 2 * MOB_SPAWN_MUL * MOB_SPAWN_EARLY_MUL * 0.75;
+/** Flat rate, no escalation over time (patch). */
+export const mobSpawnRate = (_t: number) => MOB_SPAWN_MUL * MOB_SPAWN_EARLY_MUL * 0.75 * 2;
 /** Weight of [slender, medium, chunky] at time t. */
 export const mobTierWeights = (t: number): [number, number, number] => [
   Math.max(2, 6 - t / 120) * 1.3, // +30% small mobs
