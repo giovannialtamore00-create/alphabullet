@@ -41,6 +41,7 @@ describe('bots', () => {
   it('walk to a nearby letter and pick it up', () => {
     const w = testWorld(4);
     isolate(w);
+    w.fog.timer = 1e9; // fog now starts at 30s; keep it out of this pickup test
     const b = w.players[2];
     const c = w.copies.find((k) => k.state === 'pool' && !b.letters.some((id) => w.copies[id].letter === k.letter))!;
     c.state = 'ground';

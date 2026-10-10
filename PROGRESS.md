@@ -46,3 +46,8 @@
 - 13 new words finished: PUSH (added), BOUNCE FREEZE ERASE VOID SQUIRT DISARM QUICK LIFE ZAP WHIRL FLIP MAGNET. Tests in tests/unit/newwords.test.ts (105 unit tests pass, build + 3 e2e pass).
 - Committed and pushed without a playtest verdict (user asked). Includes the unrelated guest-rejoin and font work that was in the tree.
 - Open: placeholder numbers listed in DECISIONS.md; check visuals (black hole, zap, ink, flip/spin) and online play.
+
+## M19 patch (2026-10-10, needs playtest)
+- Mob spawn rate flat at 2x the old t=0 rate (no escalation). First fog wait 30s. baseRate 6 -> 6.9 (+15% fire rate). All XP +25%. Damage absorbed by a shield now gives XP to the active shield letter.
+- Tests updated (levels spawn test, bots pickup test delays fog). 113 unit tests pass.
+- Open: bots flee to the safe zone from 30s; check bot behavior early.

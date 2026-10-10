@@ -26,7 +26,7 @@ export const BULLET = {
   radius: 5,
   baseDps: 73.008, // total damage/sec of a 1-emitter lowercase letter (46.8 x1.3 balance patch, then x1.2)
   perExtraEmitterDps: 0, // every letter deals the same total; split evenly between emitters
-  baseRate: 6, // shots/sec for 1 emitter; divided by sqrt(emitters)
+  baseRate: 6.9, // +15% (patch); shots/sec for 1 emitter; divided by sqrt(emitters)
   shieldLetterDpsMul: 0.4,
   capitalDpsMul: 1.7,
   capitalRadiusMul: 1.6,
@@ -68,10 +68,10 @@ export const DROP_DECAY = { wait: 7, flash: 3 };
 export const XP = {
   threshold: 400, // level 1: BOLD
   capitalThreshold: 1200, // level 2: CAPITAL unlocked (PLACEHOLDER: total XP)
-  perDamage: 1,
-  mobKill: 6,
-  playerKill: 120,
-  letterBreak: 60, // breaking a letter (the victim loses a life but respawns). PLACEHOLDER
+  perDamage: 1.25, // +25% (patch), applies to every XP source
+  mobKill: 7.5,
+  playerKill: 150,
+  letterBreak: 75, // breaking a letter (the victim loses a life but respawns). PLACEHOLDER
 };
 
 export const CAPITAL_DURATION = 13; // was 20, -35% (patch)
@@ -113,7 +113,8 @@ export const MOB_SPAWN_EARLY_MUL = 1.3;
 export const MOB_SPAWN_LATE_MUL = 0.7;
 export const MOB_SPAWN_LATE_AT = 600;
 export const mobPhaseMul = (t: number) => MOB_SPAWN_EARLY_MUL + (MOB_SPAWN_LATE_MUL - MOB_SPAWN_EARLY_MUL) * Math.min(1, Math.max(0, t / MOB_SPAWN_LATE_AT));
-export const mobSpawnRate = (t: number) => MOB_SPAWN_MUL * mobPhaseMul(t) * Math.min(MOB_SPAWN_RATE_CAP, 0.75 * MOB_SPAWN_GROWTH_PER_MIN ** (t / 60));
+/** Flat rate: the old t=0 rate doubled (+100%), no escalation over time (patch). */
+export const mobSpawnRate = (_t: number) => 2 * MOB_SPAWN_MUL * MOB_SPAWN_EARLY_MUL * 0.75;
 /** Weight of [slender, medium, chunky] at time t. */
 export const mobTierWeights = (t: number): [number, number, number] => [
   Math.max(2, 6 - t / 120) * 1.3, // +30% small mobs
@@ -132,7 +133,7 @@ export const FOG_START_RADIUS = MAP_SIZE * 0.72;
 export const FOG_SPEED = 1.4; // fog timeline runs 40% faster (patch): wait and shrink times are divided by this
 export const FOG_STAGES: FogStage[] = ([
   // dps x1.5 in playtest 4 (was 2, 3, 5, 8, 12, 20)
-  { wait: 156, shrink: 60, radius: 3200, dps: 3 },
+  { wait: 30 * FOG_SPEED, shrink: 60, radius: 3200, dps: 3 },
   { wait: 117, shrink: 50, radius: 1800, dps: 4.5 },
   { wait: 97.5, shrink: 40, radius: 900, dps: 7.5 },
   { wait: 78, shrink: 30, radius: 400, dps: 12 },

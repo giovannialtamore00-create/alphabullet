@@ -116,6 +116,7 @@ export function damagePlayer(
         const absorbed = Math.min(amount, p.shieldBudget);
         p.shieldBudget -= absorbed;
         amount -= absorbed;
+        creditXp(w, p.id, p.active, absorbed * XP.perDamage); // blocked damage levels up the shield letter
         w.events.push({ t: 'shieldBlock', id: p.id, x: sx, y: sy, amount: absorbed, angle });
       }
     }
