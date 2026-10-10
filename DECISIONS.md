@@ -92,3 +92,9 @@ Every judgment call, newest at the bottom. Format: `- [M<n>] decision. Why.`
 - Shield ripple visuals ignore SPIN/FLIP (the shield hit test does use the pose).
 - PUSH (added): radius 400, shoves mobs and enemy players 350 px straight away (clamped to map), cooldown 15 s. All placeholders.
 - Renamed words for letter balance: SPIN->WHIRL, SPEED->QUICK, SPLASH->SQUIRT, added PUSH (effects unchanged).
+
+## M22: passive word powers
+- PIERCE, BOUNCE, FREEZE, ERASE, DISARM, QUICK, ZAP, MAGNET, CHUNKY, WHIRL, FLIP are passive: typing switches them on for good (no timer, no cooldown). Max 3 (`MAX_PASSIVES`); a 4th removes the oldest. Typing one already on does nothing.
+- A passive pauses while a letter of its word is missing, keeps its slot, resumes when regained.
+- Kept as typed one-shots: JETPACK, VOID, BOMB, DASH, PUSH, LIFE, EXILE, SQUIRT, XRAY (permanent piercing laser would be too strong).
+- Implementation: the fx timer is kept full each tick by `refreshPassives` (words.ts); WHIRL wraps at a whole number of turns so the spin stays smooth.

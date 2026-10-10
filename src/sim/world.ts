@@ -27,7 +27,7 @@ import {
 } from './config';
 import { activeCopy, activeForm, addSlow, bodyMul, creditXp, damageMob, damagePlayer, glyphPose, playerRadius, posePoint, selectLetter, speedMul } from './combat';
 import { createFog, updateFog } from './fog';
-import { useWord } from './words';
+import { refreshPassives, useWord } from './words';
 
 import { createCopies, drawFromPool, dropCopy, dropLetters, findSpot, giveCopy, spawnWave, updateDropDecay, updatePickups, updateWave } from './letters';
 import { makeMob, updateMobs } from './mobs';
@@ -95,6 +95,7 @@ export function createWorld(seed: number, setups: PlayerSetup[], opts: { mobs?: 
       placement: null,
       god: false,
       wordCd: {},
+      passives: [],
       fx: noFx(),
       slow: 0,
       slowT: 0,
@@ -173,6 +174,7 @@ function applyInput(w: World, p: Player, inp: PlayerInput): void {
     switchLetter(w, p, p.xrayBack);
     p.xrayBack = null;
   }
+  refreshPassives(w, p);
   p.disarmT = Math.max(0, p.disarmT - DT);
   p.splashT = Math.max(0, p.splashT - DT);
   p.slowT = Math.max(0, p.slowT - DT);

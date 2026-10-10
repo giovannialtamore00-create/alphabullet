@@ -66,7 +66,7 @@ describe('word powers', () => {
     expect(qhp - q.hp - 0).toBeLessThanOrEqual(BOMB.dmg * PVP_DAMAGE_MUL + 1e-9);
   });
 
-  it('PIERCE lasts its duration and pierce bullets hit every mob in a line once', () => {
+  it('PIERCE stays on and pierce bullets hit every mob in a line once', () => {
     const w = setup('PIERCE');
     const p = w.players[0];
     step(w, { 0: say('PIERCE') });
@@ -83,7 +83,7 @@ describe('word powers', () => {
     expect(a.hp).toBe(990);
     expect(b.hp).toBe(990);
     run(w, Math.ceil(PIERCE.duration * 30));
-    expect(p.fx.pierce).toBe(0);
+    expect(p.fx.pierce).toBeGreaterThan(0); // passive: never runs out
   });
 
   it('matchWord finds a word at the end of the typed letters', () => {

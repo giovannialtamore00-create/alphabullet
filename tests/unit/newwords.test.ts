@@ -40,18 +40,25 @@ describe('new word powers', () => {
       const p = w.players[0];
       expect(ownsWord(w, p, word), word + ' letters available').toBe(true);
       expect(useWord(w, p, word), word).toBe(true);
+      if (WORDS.find((d) => d.word === word)!.passive) {
+        expect(p.passives, word).toContain(word);
+        continue;
+      }
       expect(p.wordCd[word]).toBeGreaterThan(0);
       expect(p.spawnProt, word + ' immunity').toBeGreaterThanOrEqual(WORD_IMMUNITY);
     }
   });
 
-  it('timed words last exactly their duration', () => {
-    const w = setup('QUICK');
+  it('timed words last exactly their duration; passive ones never run out', () => {
+    const w = setup('QUICK', 'XRAY');
     const p = w.players[0];
     step(w, { 0: say('QUICK') });
     expect(p.fx.speed).toBeGreaterThan(SPEED.duration - 0.1);
-    run(w, Math.ceil(SPEED.duration * 30));
-    expect(p.fx.speed).toBeCloseTo(0, 6);
+    run(w, Math.ceil(SPEED.duration * 30) * 3);
+    expect(p.fx.speed).toBeGreaterThan(0);
+    step(w, { 0: say('XRAY') });
+    run(w, Math.ceil(XRAY.duration * 30));
+    expect(p.fx.xray).toBeCloseTo(0, 6);
   });
 
   it('BOUNCE reflects off the map edge and off a target, and runs out', () => {
@@ -306,7 +313,7 @@ describe('JETPACK, EXILE, XRAY', () => {
 });
 
 describe('CHUNKY', () => {
-  it('makes the body 20% bigger and bullets 30% bigger, then wears off', () => {
+  it('makes the body 20% bigger and bullets 30% bigger, and stays on (passive)', () => {
     const w = setup('CHUNKY');
     const p = w.players[0];
     p.fireTimer = 0;
@@ -317,6 +324,6 @@ describe('CHUNKY', () => {
     expect(mine.length).toBeGreaterThan(0);
     expect(mine[0].r / 5).toBeCloseTo(CHUNKY.bulletMul, 1);
     run(w, Math.ceil(CHUNKY.duration * 30) + 2);
-    expect(playerRadius(w, p)).toBeCloseTo(r0, 6);
+    expect(playerRadius(w, p)).toBeCloseTo(r0 * CHUNKY.sizeMul, 6);
   });
 });

@@ -198,9 +198,12 @@ export class Hud {
       const all = [...d.word].every((ch) => have.has(ch));
       const cd = p.wordCd[d.word] ?? 0;
       row.classList.toggle('complete', all);
-      row.classList.toggle('ready', all && cd <= 0);
+      row.classList.toggle('ready', all && cd <= 0 && !p.passives.includes(d.word));
       const active = d.effect in p.fx ? p.fx[d.effect as TimedFx] : 0;
-      if (active > 0) info.textContent = `${Math.ceil(active)}s!`;
+      const slot = p.passives.indexOf(d.word);
+      row.classList.toggle('passive', slot >= 0);
+      if (slot >= 0) info.textContent = all ? 'ON' : 'off';
+      else if (active > 0) info.textContent = `${Math.ceil(active)}s!`;
       else info.textContent = all && cd > 0 ? `${Math.ceil(cd)}s` : '';
     });
   }

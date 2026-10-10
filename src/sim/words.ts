@@ -1,5 +1,5 @@
 /** Word powers: type a word whose letters you all own to trigger its effect. Pure: no DOM. */
-import { BOMB, BOUNCE, CHUNKY, DASH, DISARM, ERASE, EXILE, FLIP, JET, FREEZE, LIFE, MAGNET, MAP_SIZE, PIERCE, PUSH, PVP_DAMAGE_MUL, SPEED, SPIN, SPLASH, VOID, WORD_IMMUNITY, XP, XRAY, ZAP } from './config';
+import { BOMB, BOUNCE, CHUNKY, DASH, DISARM, ERASE, EXILE, FLIP, JET, FREEZE, LIFE, MAGNET, MAP_SIZE, MAX_PASSIVES, PIERCE, PUSH, PVP_DAMAGE_MUL, SPEED, SPIN, SPLASH, VOID, WORD_IMMUNITY, XP, XRAY, ZAP } from './config';
 import { creditXp, damageMob, damagePlayer } from './combat';
 import { findSpot } from './letters';
 import type { Player, TimedFx, World } from './types';
@@ -103,31 +103,46 @@ export interface WordDef {
   word: string; // capital letters
   cooldown: number; // seconds
   effect: keyof typeof EFFECTS;
+  /** Passive: typing switches it on until pushed out by newer passives (no timer, no cooldown). */
+  passive?: boolean;
 }
 
 /** Add new words here. A new kind of effect also needs a function in EFFECTS. */
 export const WORDS: WordDef[] = [
-  { word: 'PIERCE', cooldown: PIERCE.cooldown, effect: 'pierce' },
+  { word: 'PIERCE', cooldown: PIERCE.cooldown, effect: 'pierce', passive: true },
   { word: 'BOMB', cooldown: BOMB.cooldown, effect: 'bomb' },
   { word: 'DASH', cooldown: DASH.cooldown, effect: 'dash' },
   { word: 'PUSH', cooldown: PUSH.cooldown, effect: 'push' },
-  { word: 'BOUNCE', cooldown: BOUNCE.cooldown, effect: 'bounce' },
-  { word: 'FREEZE', cooldown: FREEZE.cooldown, effect: 'freeze' },
-  { word: 'ERASE', cooldown: ERASE.cooldown, effect: 'erase' },
+  { word: 'BOUNCE', cooldown: BOUNCE.cooldown, effect: 'bounce', passive: true },
+  { word: 'FREEZE', cooldown: FREEZE.cooldown, effect: 'freeze', passive: true },
+  { word: 'ERASE', cooldown: ERASE.cooldown, effect: 'erase', passive: true },
   { word: 'VOID', cooldown: VOID.cooldown, effect: 'void' },
   { word: 'SQUIRT', cooldown: SPLASH.cooldown, effect: 'splash' },
-  { word: 'DISARM', cooldown: DISARM.cooldown, effect: 'disarm' },
-  { word: 'QUICK', cooldown: SPEED.cooldown, effect: 'speed' },
+  { word: 'DISARM', cooldown: DISARM.cooldown, effect: 'disarm', passive: true },
+  { word: 'QUICK', cooldown: SPEED.cooldown, effect: 'speed', passive: true },
   { word: 'LIFE', cooldown: LIFE.cooldown, effect: 'life' },
-  { word: 'ZAP', cooldown: ZAP.cooldown, effect: 'zap' },
-  { word: 'WHIRL', cooldown: SPIN.cooldown, effect: 'spin' },
-  { word: 'FLIP', cooldown: FLIP.cooldown, effect: 'flip' },
-  { word: 'MAGNET', cooldown: MAGNET.cooldown, effect: 'magnet' },
+  { word: 'ZAP', cooldown: ZAP.cooldown, effect: 'zap', passive: true },
+  { word: 'WHIRL', cooldown: SPIN.cooldown, effect: 'spin', passive: true },
+  { word: 'FLIP', cooldown: FLIP.cooldown, effect: 'flip', passive: true },
+  { word: 'MAGNET', cooldown: MAGNET.cooldown, effect: 'magnet', passive: true },
   { word: 'JETPACK', cooldown: JET.cooldown, effect: 'jet' },
   { word: 'EXILE', cooldown: EXILE.cooldown, effect: 'exile' },
-  { word: 'CHUNKY', cooldown: CHUNKY.cooldown, effect: 'chunky' },
+  { word: 'CHUNKY', cooldown: CHUNKY.cooldown, effect: 'chunky', passive: true },
   { word: 'XRAY', cooldown: XRAY.cooldown, effect: 'xray' },
 ];
+
+/** Fx timer length that a passive keeps refilling (SPIN needs the full cycle to keep its rotation smooth). */
+const PASSIVE_LEN: Partial<Record<TimedFx, number>> = { pierce: PIERCE.duration, bounce: BOUNCE.duration, freeze: FREEZE.duration, erase: ERASE.duration, disarm: DISARM.duration, speed: SPEED.duration, zap: ZAP.duration, spin: SPIN.duration, flip: FLIP.duration, magnet: MAGNET.duration, chunky: CHUNKY.duration };
+
+/** Keep the fx timer of every owned passive full; passives whose word is no longer owned are off. Called each tick. */
+export function refreshPassives(w: World, p: Player): void {
+  for (const word of p.passives) {
+    const k = WORDS.find((d) => d.word === word)!.effect as TimedFx;
+    if (ownsWord(w, p, word) && p.alive) {
+      if (p.fx[k] <= 0) p.fx[k] = PASSIVE_LEN[k]!;
+    } else p.fx[k] = 0;
+  }
+}
 
 /** True if the player owns at least one copy of every letter in the word. */
 export function ownsWord(w: World, p: Player, word: string): boolean {
@@ -139,6 +154,17 @@ export function ownsWord(w: World, p: Player, word: string): boolean {
 export function useWord(w: World, p: Player, word: string): boolean {
   const def = WORDS.find((d) => d.word === word);
   if (!def || !p.alive || (p.wordCd[word] ?? 0) > 0 || !ownsWord(w, p, word)) return false;
+  if (def.passive) {
+    if (p.passives.includes(word)) return false;
+    p.passives.push(word);
+    if (p.passives.length > MAX_PASSIVES) {
+      const old = WORDS.find((d) => d.word === p.passives.shift())!;
+      p.fx[old.effect as TimedFx] = 0;
+    }
+    EFFECTS[def.effect](w, p);
+    w.events.push({ t: 'word', id: p.id, word, x: p.x, y: p.y, fromX: p.x, fromY: p.y });
+    return true;
+  }
   const fromX = p.x;
   const fromY = p.y;
   EFFECTS[def.effect](w, p);

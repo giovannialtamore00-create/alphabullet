@@ -26,7 +26,7 @@ export type HostMsg =
 export interface Snapshot {
   k: number; // tick
   ack: number; // last input seq applied for this client
-  p: number[][]; // ends with word cooldowns in WORDS order
+  p: number[][]; // ends with word cooldowns in WORDS order, then passive word indices
   pl: number[][]; // letters per player
   c: number[][];
   m: number[][];
@@ -125,6 +125,7 @@ export function encodeSnapshot(w: World, cv: ClientView, events: SimEvent[]): Sn
       r1(p.disarmT),
       r1(p.splashT),
       ...WORDS.map((d) => r1(p.wordCd[d.word] ?? 0)),
+      ...p.passives.map((x) => WORDS.findIndex((d) => d.word === x)),
     ]),
     pl: w.players.map((p) => p.letters),
     c: w.copies.map((c) => [STATES.indexOf(c.state), c.owner ?? -1, r0(c.x), r0(c.y), r0(c.xp), c.upgraded ? 1 : 0, r1(c.capitalTimer), r1(c.capitalCd), c.wave ? 1 : 0, c.bold ? 1 : 0, r1(c.hp), r1(c.idle)]),
@@ -172,6 +173,7 @@ export function applySnapshot(w: World, s: Snapshot, opts: { keepLocal?: number 
     p.disarmT = a[18 + n];
     p.splashT = a[19 + n];
     WORDS.forEach((d, k) => (p.wordCd[d.word] = a[20 + n + k]));
+    p.passives = a.slice(20 + n + WORDS.length).map((k) => WORDS[k].word);
     p.letters = s.pl[i] ?? [];
   });
   s.c.forEach((a, i) => {

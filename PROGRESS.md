@@ -58,3 +58,6 @@
 
 ## M21: mob spawn decay (needs playtest)
 - Mob spawn rate drops 3% (compounding) every 15 s, fixed from 4 min (about 61% of start). `MOB_SPAWN_DECAY` in config.ts.
+
+## M22: passive word powers (needs playtest)
+- See DECISIONS.md M22. Tests in tests/unit/passives.test.ts. Synced online via the snapshot tail (protocol.ts).

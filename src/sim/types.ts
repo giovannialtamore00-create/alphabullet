@@ -46,6 +46,7 @@ export interface Player {
   placement: number | null;
   god: boolean;
   wordCd: Record<string, number>; // seconds left per word power
+  passives: string[]; // passive word powers switched on, oldest first (max MAX_PASSIVES)
   /** Seconds left of each timed word power this player cast on itself. */
   fx: Record<TimedFx, number>;
   slow: number; // FREEZE slow received, 0..FREEZE.max

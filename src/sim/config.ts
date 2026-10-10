@@ -152,6 +152,8 @@ export const SPATIAL_CELL = 128;
 
 /** Word powers: own every letter of the word, then type it. All PLACEHOLDER. */
 export const WORD_IMMUNITY = 0.5; // seconds of invulnerability when a word power fires
+/** Passive word powers stay on until pushed out: typing a new one beyond this many removes the oldest. */
+export const MAX_PASSIVES = 3;
 export const WORD_TYPE_WINDOW = 1; // max seconds between typed letters of a word
 export const PIERCE = { duration: 6, cooldown: 30 };
 export const BOMB = { radius: 300, dmg: 60, cooldown: 25 };
