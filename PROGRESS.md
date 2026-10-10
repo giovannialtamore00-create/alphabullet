@@ -15,9 +15,10 @@
 
 - Balance patch (11 changes, see DECISIONS.md "Balance patch"): built, 91 unit + 3 e2e pass, build OK. NOT playtested, NOT committed yet.
 - Patch 2026-10-10 b (built, 109 unit pass, build OK, NOT playtested): player damage x1.2 (BULLET.baseDps); mob spawn x1.3 at start fading linearly to x0.7 at 10 min (mobPhaseMul); new letters spawn inside the final safe circle while the fog moves (letters.ts spawnCircle); death-drop letters flash after 7 s and vanish to the pool 3 s later (DROP_DECAY, LetterCopy.idle, synced in protocol). Also: 0.5 s immunity when a word power fires (WORD_IMMUNITY, reuses spawnProt, so the player blinks).
+- Patch 2026-10-10 c (built, 112 unit pass, build OK, NOT playtested): word powers JETPACK (5 s: fast spin x3 rev/s, fire x2.5, recoil drift opposite the shots), EXILE (other players in a 1600x900 box around you teleported >=2000 px away), XRAY (3 s: switches to your X, piercing unlimited-range lasers, returns to old letter). Numbers in config.ts (JET, EXILE, XRAY) are placeholders; cooldowns 40/45/45.
 
 ## Next steps
-2. User: playtest the 2026-10-10 patches (fog, mob pacing, letter waves, drop decay), then solo + online; report pacing/balance feel (BLOCKERS.md #1).
+2. User: playtest the 2026-10-10 patches (fog, mob pacing, letter waves, drop decay, JETPACK/EXILE/XRAY), then solo + online; report pacing/balance feel (BLOCKERS.md #1).
 3. If resumed: tune config.ts knobs from playtest feedback, re-run tests, commit.
 4. Word powers open questions: (a) CAPITAL can still end early from the letter switches while typing. (b) Bots don't use words. (c) Word list: glow strength/position OK? hide words with zero owned letters? Then user playtest of words.
 5. Recommended fix: keep the host sim running when its tab is hidden (game loop is requestAnimationFrame only, src/game/game.ts frame()), else a host switching tabs freezes the match for everyone.

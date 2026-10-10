@@ -164,3 +164,9 @@ export const ZAP = { duration: 8, cooldown: 30, range: 170, jumps: 2, dmgMul: 0.
 export const SPIN = { duration: 8, cooldown: 30, revPerSec: 0.5 };
 export const FLIP = { duration: 12, cooldown: 25 };
 export const MAGNET = { duration: 12, cooldown: 30, radius: 1000, speed: 500 };
+/** JETPACK: fast spin, faster fire, and recoil that pushes the player opposite the average shot direction. PLACEHOLDER numbers. */
+export const JET = { duration: 5, cooldown: 40, revPerSec: 3, fireMul: 2.5, kick: 260, drag: 3 };
+/** EXILE: other players inside this box around the caster (the camera view at zoom 1) are teleported at least `minDist` away. */
+export const EXILE = { cooldown: 45, halfW: 800, halfH: 450, minDist: 2000 };
+/** XRAY: the caster's X letter fires piercing, unlimited-range lasers. */
+export const XRAY = { duration: 3, cooldown: 45, speedMul: 3, radiusMul: 0.6 };

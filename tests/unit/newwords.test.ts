@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DISARM, FREEZE, MAGNET, PUSH, SPEED, VOID, WORD_IMMUNITY, ZAP } from '../../src/sim/config';
+import { DISARM, EXILE, FREEZE, JET, XRAY, MAGNET, PUSH, SPEED, VOID, WORD_IMMUNITY, ZAP } from '../../src/sim/config';
 import { makeMob } from '../../src/sim/mobs';
 import { NO_INPUT, type Bullet, type World } from '../../src/sim/types';
 import { debugGiveLetter, step } from '../../src/sim/world';
@@ -14,7 +14,7 @@ function setup(...words: string[]): World {
 }
 
 const say = (word: string) => ({ ...NO_INPUT, word });
-const NEW_WORDS = ['PUSH', 'BOUNCE', 'FREEZE', 'ERASE', 'VOID', 'SQUIRT', 'DISARM', 'QUICK', 'LIFE', 'ZAP', 'WHIRL', 'FLIP', 'MAGNET'];
+const NEW_WORDS = ['PUSH', 'BOUNCE', 'FREEZE', 'ERASE', 'VOID', 'SQUIRT', 'DISARM', 'QUICK', 'LIFE', 'ZAP', 'WHIRL', 'FLIP', 'MAGNET', 'JETPACK', 'EXILE', 'XRAY'];
 
 const shot = (w: World, owner: number, x: number, y: number, vx: number, vy: number, extra: Partial<Bullet> = {}): Bullet => {
   const b: Bullet = { id: w.nextId++, owner, copyId: w.players[owner].active!, x, y, vx, vy, r: 5, dmg: 10, life: 2, capital: false, ...extra };
@@ -244,5 +244,62 @@ describe('new word powers', () => {
     p.fx.magnet = 5;
     run(w, 5);
     expect(c.x).toBeLessThan(p.x + 600 - (MAGNET.speed * 4) / 30);
+  });
+});
+
+describe('JETPACK, EXILE, XRAY', () => {
+  it('JETPACK spins, fires 2.5x faster and drifts the player', () => {
+    const base = setup('JETPACK');
+    const jet = setup('JETPACK');
+    jet.players[0].x = base.players[0].x = 4000;
+    jet.players[0].y = base.players[0].y = 4000;
+    step(jet, { 0: say('JETPACK') });
+    expect(jet.players[0].fx.jet).toBeGreaterThan(JET.duration - 0.1);
+    const shots = (w: World) => {
+      w.players[0].fireTimer = 0;
+      let n = 0;
+      for (let i = 0; i < 60; i++) {
+        step(w, {});
+        n += w.events.filter((e) => e.t === 'shot' && e.owner === 0).length;
+      }
+      return n;
+    };
+    const nBase = shots(base);
+    const nJet = shots(jet);
+    expect(nJet / nBase).toBeGreaterThan(2.2);
+    const p = jet.players[0];
+    expect(Math.hypot(p.x - 4000, p.y - 4000)).toBeGreaterThan(5);
+  });
+
+  it('EXILE teleports only players in view, far away', () => {
+    const w = testWorld(6, 3);
+    isolate(w);
+    for (const ch of 'EXILE') debugGiveLetter(w, 0, ch);
+    const [a, near, far] = w.players;
+    a.x = 4000;
+    a.y = 4000;
+    near.x = 4300;
+    near.y = 4100;
+    far.x = 5500;
+    far.y = 4000;
+    expect(useWord(w, a, 'EXILE')).toBe(true);
+    expect(Math.hypot(near.x - a.x, near.y - a.y)).toBeGreaterThanOrEqual(EXILE.minDist * 0.9);
+    expect(far.x).toBe(5500);
+  });
+
+  it('XRAY fires piercing lasers from X, then returns to the old letter', () => {
+    const w = setup('XRAY');
+    const p = w.players[0];
+    p.x = 4000;
+    p.y = 4000;
+    const before = w.copies[p.active!].letter;
+    step(w, { 0: { ...say('XRAY'), wordBack: before } });
+    expect(w.copies[p.active!].letter).toBe('X');
+    run(w, 10);
+    const lasers = w.bullets.filter((b) => b.owner === 0 && b.laser);
+    expect(lasers.length).toBeGreaterThan(0);
+    expect(lasers.every((b) => b.pierce && b.life > 5)).toBe(true);
+    run(w, Math.ceil(XRAY.duration * 30));
+    expect(w.copies[p.active!].letter).toBe(before);
   });
 });

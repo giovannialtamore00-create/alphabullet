@@ -1,6 +1,7 @@
 /** Word powers: type a word whose letters you all own to trigger its effect. Pure: no DOM. */
-import { BOMB, BOUNCE, DASH, DISARM, ERASE, FLIP, FREEZE, LIFE, MAGNET, MAP_SIZE, PIERCE, PUSH, PVP_DAMAGE_MUL, SPEED, SPIN, SPLASH, VOID, WORD_IMMUNITY, XP, ZAP } from './config';
+import { BOMB, BOUNCE, DASH, DISARM, ERASE, EXILE, FLIP, JET, FREEZE, LIFE, MAGNET, MAP_SIZE, PIERCE, PUSH, PVP_DAMAGE_MUL, SPEED, SPIN, SPLASH, VOID, WORD_IMMUNITY, XP, XRAY, ZAP } from './config';
 import { creditXp, damageMob, damagePlayer } from './combat';
+import { findSpot } from './letters';
 import type { Player, TimedFx, World } from './types';
 
 type Effect = (w: World, p: Player) => void;
@@ -81,6 +82,19 @@ const EFFECTS = {
   flip: timed('flip', FLIP.duration),
   /** Nearby letters on the ground slide toward the player. */
   magnet: timed('magnet', MAGNET.duration),
+  /** Fast spin, faster fire and recoil drift (see fire() in world.ts). */
+  jet: timed('jet', JET.duration),
+  /** Every other player in the caster's view is teleported far away, inside the safe circle. */
+  exile: (w, p) => {
+    for (const q of w.players) {
+      if (q === p || !q.alive || Math.abs(q.x - p.x) > EXILE.halfW || Math.abs(q.y - p.y) > EXILE.halfH) continue;
+      const spot = findSpot(w, [{ x: p.x, y: p.y, d: EXILE.minDist }]);
+      q.x = spot.x;
+      q.y = spot.y;
+    }
+  },
+  /** The X letter (switched to in applyInput) fires piercing lasers. */
+  xray: timed('xray', XRAY.duration),
 } satisfies Record<string, Effect>;
 
 export interface WordDef {
@@ -107,6 +121,9 @@ export const WORDS: WordDef[] = [
   { word: 'WHIRL', cooldown: SPIN.cooldown, effect: 'spin' },
   { word: 'FLIP', cooldown: FLIP.cooldown, effect: 'flip' },
   { word: 'MAGNET', cooldown: MAGNET.cooldown, effect: 'magnet' },
+  { word: 'JETPACK', cooldown: JET.cooldown, effect: 'jet' },
+  { word: 'EXILE', cooldown: EXILE.cooldown, effect: 'exile' },
+  { word: 'XRAY', cooldown: XRAY.cooldown, effect: 'xray' },
 ];
 
 /** True if the player owns at least one copy of every letter in the word. */

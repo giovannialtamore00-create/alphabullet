@@ -40,12 +40,12 @@ export interface Snapshot {
   e: SimEvent[];
 }
 
-/** Bullet effect flags for rendering on the client: 1 pierce, 2 bounce, 4 freeze, 8 disarm, 16 zap. */
+/** Bullet effect flags for rendering on the client: 1 pierce, 2 bounce, 4 freeze, 8 disarm, 16 zap, 32 laser. */
 function bulletFlags(b: Bullet): number {
-  return (b.pierce ? 1 : 0) | (b.bounce ? 2 : 0) | (b.freeze ? 4 : 0) | (b.disarm ? 8 : 0) | (b.zap ? 16 : 0);
+  return (b.pierce ? 1 : 0) | (b.bounce ? 2 : 0) | (b.freeze ? 4 : 0) | (b.disarm ? 8 : 0) | (b.zap ? 16 : 0) | (b.laser ? 32 : 0);
 }
 function flagsToBullet(f: number): Partial<Bullet> {
-  return { pierce: !!(f & 1), bounce: f & 2 ? 1 : 0, freeze: !!(f & 4), disarm: !!(f & 8), zap: !!(f & 16) };
+  return { pierce: !!(f & 1), bounce: f & 2 ? 1 : 0, freeze: !!(f & 4), disarm: !!(f & 8), zap: !!(f & 16), laser: !!(f & 32) };
 }
 
 const STATES: CopyState[] = ['pool', 'ground', 'owned'];

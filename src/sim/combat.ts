@@ -1,4 +1,4 @@
-import { FREEZE, PLAYER_HP, SPEED, SPIN, XP } from './config';
+import { FREEZE, JET, PLAYER_HP, SPEED, SPIN, XP } from './config';
 import { getForm, shieldCovers, type DerivedForm } from './glyphDerive';
 import type { LetterCopy, Mob, Player, World } from './types';
 
@@ -17,7 +17,7 @@ export interface Pose {
   rot: number;
 }
 export function glyphPose(p: Player): Pose {
-  const rot = p.fx.spin > 0 ? (SPIN.duration - p.fx.spin) * SPIN.revPerSec * Math.PI * 2 : 0;
+  const rot = p.fx.jet > 0 ? (JET.duration - p.fx.jet) * JET.revPerSec * Math.PI * 2 : p.fx.spin > 0 ? (SPIN.duration - p.fx.spin) * SPIN.revPerSec * Math.PI * 2 : 0;
   return { flip: p.fx.flip > 0, rot };
 }
 

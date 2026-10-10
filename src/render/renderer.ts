@@ -308,7 +308,7 @@ export class GameRenderer {
     const sc = (b.r * 2.3) / 32;
     // Slight stretch along travel direction reads as motion.
     s.rotation = Math.atan2(b.vy, b.vx);
-    s.scale.set(sc * 1.35, sc * 0.85);
+    s.scale.set(b.laser ? sc * 14 : sc * 1.35, b.laser ? sc * 0.7 : sc * 0.85);
   }
 
   private syncPlayers(w: World, a: number, dt: number, opts: RenderOpts): void {

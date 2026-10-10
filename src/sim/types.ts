@@ -11,7 +11,7 @@ export interface PlayerInput {
   wordBack?: string | null; // letter held before typing the word; switched back to after it
 }
 /** Word powers that last a while; their timers live in Player.fx (order = network order). */
-export const TIMED_FX = ['pierce', 'bounce', 'freeze', 'erase', 'disarm', 'speed', 'zap', 'spin', 'flip', 'magnet'] as const;
+export const TIMED_FX = ['pierce', 'bounce', 'freeze', 'erase', 'disarm', 'speed', 'zap', 'spin', 'flip', 'magnet', 'jet', 'xray'] as const;
 export type TimedFx = (typeof TIMED_FX)[number];
 export const noFx = (): Record<TimedFx, number> => Object.fromEntries(TIMED_FX.map((k) => [k, 0])) as Record<TimedFx, number>;
 
@@ -54,6 +54,9 @@ export interface Player {
   splashT: number; // seconds of SPLASH ink on this player's screen
   faceX: number; // last movement direction (unit vector), used by DASH
   faceY: number;
+  jetVx: number; // JETPACK recoil velocity (px/s), host only
+  jetVy: number;
+  xrayBack: string | null; // letter to return to when XRAY ends, host only
 }
 
 export type CopyState = 'pool' | 'ground' | 'owned';
@@ -109,6 +112,7 @@ export interface Bullet {
   freeze?: boolean; // slows what it hits (FREEZE word)
   disarm?: boolean; // stops a hit player from firing (DISARM word)
   zap?: boolean; // chains to nearby targets on hit (ZAP word)
+  laser?: boolean; // XRAY: drawn as a long beam
   hitIds?: number[]; // targets a pierce bullet already hit (mob id, or -1 - player id)
 }
 

@@ -9,6 +9,7 @@ import {
   DISARM,
   ERASE,
   DT,
+  JET,
   MAP_SIZE,
   PLAYER_HP,
   PLAYER_LIVES,
@@ -20,6 +21,7 @@ import {
   SWITCH_COOLDOWN,
   VOID,
   XP,
+  XRAY,
   ZAP,
 } from './config';
 import { activeCopy, activeForm, addSlow, creditXp, damageMob, damagePlayer, glyphPose, playerRadius, posePoint, selectLetter, speedMul } from './combat';
@@ -99,6 +101,9 @@ export function createWorld(seed: number, setups: PlayerSetup[], opts: { mobs?: 
       splashT: 0,
       faceX: 0,
       faceY: -1,
+      jetVx: 0,
+      jetVy: 0,
+      xrayBack: null,
     };
     w.players.push(p);
   });
@@ -161,7 +166,12 @@ function applyInput(w: World, p: Player, inp: PlayerInput): void {
     w.events.push({ t: 'capital', id: p.id, letter: c.letter, on: true });
   }
   for (const k in p.wordCd) p.wordCd[k] = Math.max(0, p.wordCd[k] - DT);
+  const xrayOn = p.fx.xray > 0;
   for (const k of TIMED_FX) p.fx[k] = Math.max(0, p.fx[k] - DT);
+  if (xrayOn && p.fx.xray <= 0 && p.xrayBack) {
+    switchLetter(w, p, p.xrayBack);
+    p.xrayBack = null;
+  }
   p.disarmT = Math.max(0, p.disarmT - DT);
   p.splashT = Math.max(0, p.splashT - DT);
   p.slowT = Math.max(0, p.slowT - DT);
@@ -171,12 +181,20 @@ function applyInput(w: World, p: Player, inp: PlayerInput): void {
     p.faceX = inp.mx / len;
     p.faceY = inp.my / len;
   }
-  if (inp.word) useWord(w, p, inp.word);
+  const before = activeCopy(w, p)?.letter ?? null;
+  if (inp.word && useWord(w, p, inp.word) && inp.word === 'XRAY') {
+    // XRAY: fire from the X letter until the lasers run out, then return to the letter held before.
+    p.xrayBack = inp.wordBack ?? before;
+    switchLetter(w, p, 'X');
+  }
   // After typing a word, go back to the letter held before it (ignores the switch cooldown).
-  if (inp.word && inp.wordBack && p.alive) switchLetter(w, p, inp.wordBack);
+  if (inp.word && inp.wordBack && p.alive && p.fx.xray <= 0) switchLetter(w, p, inp.wordBack);
   const pos = moveStep(p.x, p.y, inp.mx, inp.my, speedMul(p));
-  p.x = pos.x;
-  p.y = pos.y;
+  // JETPACK recoil drifts the player on top of its own movement; it cannot be steered.
+  p.jetVx *= Math.max(0, 1 - JET.drag * DT);
+  p.jetVy *= Math.max(0, 1 - JET.drag * DT);
+  p.x = Math.min(MAP_SIZE - 20, Math.max(20, pos.x + p.jetVx * DT));
+  p.y = Math.min(MAP_SIZE - 20, Math.max(20, pos.y + p.jetVy * DT));
   const form = activeForm(w, p);
   const cap = form?.shieldCap ?? 0;
   p.shieldBudget = Math.min(cap, p.shieldBudget + cap * DT);
@@ -206,7 +224,9 @@ function fire(w: World): void {
     const pose = glyphPose(p);
     p.fireTimer -= DT;
     while (p.fireTimer <= 0) {
-      p.fireTimer += 1 / b.rate;
+      p.fireTimer += 1 / (b.rate * (p.fx.jet > 0 ? JET.fireMul : 1));
+      let sx = 0;
+      let sy = 0;
       const boldR = w.copies[p.active].bold ? BOLD.bulletRadiusMul : 1;
       for (const e of form.emitters) {
         const [edx, edy] = posePoint(pose, e.dx, e.dy);
@@ -215,24 +235,36 @@ function fire(w: World): void {
         const spread = e.pellets > 1 ? (BULLET.dotSpreadDeg * Math.PI) / 180 : 0;
         for (let k = 0; k < e.pellets; k++) {
           const ang = e.pellets > 1 ? ang0 - spread / 2 + (spread * k) / (e.pellets - 1) : ang0;
+          const laser = p.fx.xray > 0;
+          const sp = b.speed * (laser ? XRAY.speedMul : 1);
+          sx += Math.cos(ang);
+          sy += Math.sin(ang);
           w.bullets.push({
             id: w.nextId++,
             owner: p.id,
             copyId: p.active,
             x: p.x + ex,
             y: p.y + ey,
-            vx: e.pellets > 1 ? Math.cos(ang) * b.speed : edx * b.speed,
-            vy: e.pellets > 1 ? Math.sin(ang) * b.speed : edy * b.speed,
-            r: b.radius * boldR,
+            vx: e.pellets > 1 ? Math.cos(ang) * sp : edx * sp,
+            vy: e.pellets > 1 ? Math.sin(ang) * sp : edy * sp,
+            r: b.radius * boldR * (laser ? XRAY.radiusMul : 1),
             dmg: (b.dmg * e.dmgMul) / e.pellets,
-            life: e.range / b.speed,
+            life: laser ? (MAP_SIZE * 1.5) / sp : e.range / b.speed,
             capital: form.capital,
-            pierce: p.fx.pierce > 0,
+            pierce: p.fx.pierce > 0 || laser,
+            laser,
             bounce: p.fx.bounce > 0 ? BOUNCE.bounces : 0,
             freeze: p.fx.freeze > 0,
             disarm: p.fx.disarm > 0,
             zap: p.fx.zap > 0,
           });
+        }
+      }
+      if (p.fx.jet > 0) {
+        const n = Math.hypot(sx, sy);
+        if (n > 1e-6) {
+          p.jetVx -= (sx / n) * JET.kick * (n / form.emitters.length);
+          p.jetVy -= (sy / n) * JET.kick * (n / form.emitters.length);
         }
       }
       w.events.push({ t: 'shot', owner: p.id, x: p.x, y: p.y, capital: form.capital });
@@ -424,6 +456,8 @@ function loseActiveLetter(w: World, p: Player): void {
   p.morph = 0;
   p.lastDamager = null;
   p.spawnProt = SPAWN_PROTECTION;
+  p.jetVx = 0;
+  p.jetVy = 0;
 }
 
 function resolveDeaths(w: World): void {
