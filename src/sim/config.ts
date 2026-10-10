@@ -72,11 +72,11 @@ export const DROP_DECAY = { wait: 7, flash: 3 };
 export const SHUFFLE = { time: 3 };
 
 export const XP = {
-  threshold: 600, // level 1: BOLD
-  capitalThreshold: 1000, // level 2: CAPITAL unlocked (PLACEHOLDER: total XP)
-  damageThreshold: 1200, // level 3: +15% damage (PLACEHOLDER: total XP)
+  damageThreshold: 300, // level 1: +15% damage (total XP)
   damageMul: 1.15,
-  rateThreshold: 1400, // level 4: +20% fire rate (PLACEHOLDER: total XP)
+  rateThreshold: 500, // level 2: +20% fire rate
+  threshold: 800, // level 3: BOLD (+25% HP)
+  capitalThreshold: 1000, // level 4: CAPITAL unlocked
   rateMul: 1.2,
   perDamage: 1.25, // +25% (patch), applies to every XP source
   mobKill: 7.5,
@@ -89,7 +89,7 @@ export const CAPITAL_COOLDOWN = 45;
 /** Activating CAPITAL grants temporary HP = this x max HP, removed when CAPITAL ends. */
 export const CAPITAL_TEMP_HP_FRAC = 0.5;
 /** Level 1 BOLD letters: 25% bigger bullets, nothing else. */
-export const BOLD = { bulletRadiusMul: 1.25 };
+export const BOLD = { bulletRadiusMul: 1.25, hpMul: 1.25 };
 /** Each mob kill heals this fraction of max HP. */
 export const MOB_KILL_HEAL_FRAC = 0.005;
 /** Spawn-rate multiplier for players near a letter lying on the ground. */
@@ -162,7 +162,7 @@ export const FOG_STAGES: FogStage[] = ([
 export const SPATIAL_CELL = 128;
 
 /** Word powers: own every letter of the word, then type it. All PLACEHOLDER. */
-export const WORD_IMMUNITY = 0.5; // seconds of invulnerability when a word power fires
+export const WORD_IMMUNITY = 1; // seconds of invulnerability when a word power fires
 /** Passive word powers stay on until pushed out: typing a new one beyond this many removes the oldest. */
 export const MAX_PASSIVES = 3;
 export const WORD_TYPE_WINDOW = 1; // max seconds between typed letters of a word

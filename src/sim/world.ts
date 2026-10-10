@@ -554,11 +554,8 @@ export function debugGiveLetter(w: World, id: number, letter: string): boolean {
 export function debugUpgradeActive(w: World, id: number): void {
   const c = activeCopy(w, w.players[id]);
   if (c && !c.upgraded) {
-    c.xp = XP.capitalThreshold;
-    c.bold = true;
-    c.upgraded = true;
+    creditXp(w, id, c.id, Math.max(0, XP.capitalThreshold - c.xp));
     c.capitalCd = 0;
-    w.events.push({ t: 'upgrade', id, letter: c.letter });
   }
 }
 

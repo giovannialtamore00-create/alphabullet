@@ -210,13 +210,13 @@ export class Game {
           if (e.id === me) this.hud.toast(`Picked up ${e.letter}`);
           break;
         case 'bold':
-          if (e.id === me) this.hud.toast(`${e.letter} is now BOLD! Bullets are 25% bigger`, true);
+          if (e.id === me) this.hud.toast(`${e.letter} is now BOLD! Bullets 25% bigger, +25% HP`, true);
           break;
         case 'upgrade':
           if (e.id === me) this.hud.toast(`${e.letter} upgraded! Press SHIFT for CAPITAL ${e.letter}`, true);
           break;
         case 'levelup':
-          if (e.id === me) this.hud.toast(e.level === 3 ? `${e.letter} level 3: +15% damage` : `${e.letter} level 4: +20% fire rate`, true);
+          if (e.id === me) this.hud.toast(e.level === 1 ? `${e.letter} level 1: +15% damage` : `${e.letter} level 2: +20% fire rate`, true);
           break;
         case 'playerDeath': {
           const victim = w.players[e.id];

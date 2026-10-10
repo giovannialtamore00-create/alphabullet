@@ -1,4 +1,4 @@
-import { CHUNKY, FREEZE, JET, PLAYER_HP, SHIELD, SPEED, SPIN, XP } from './config';
+import { BOLD, CHUNKY, FREEZE, JET, PLAYER_HP, SHIELD, SPEED, SPIN, XP } from './config';
 import { getForm, shieldCovers, type DerivedForm } from './glyphDerive';
 import type { LetterCopy, Mob, Player, World } from './types';
 
@@ -61,8 +61,8 @@ export function playerRadius(w: World, p: Player): number {
 }
 
 /** Max HP of one letter's own pool. */
-export function copyMaxHp(_c: LetterCopy): number {
-  return PLAYER_HP;
+export function copyMaxHp(c: LetterCopy): number {
+  return c.bold ? PLAYER_HP * BOLD.hpMul : PLAYER_HP;
 }
 
 /**
@@ -80,29 +80,36 @@ export function selectLetter(w: World, p: Player, id: number): void {
 
 /** Letter level 0-4 from its XP and flags. */
 export const copyLevel = (c: LetterCopy): number =>
-  c.xp >= XP.rateThreshold ? 4 : c.xp >= XP.damageThreshold ? 3 : c.upgraded ? 2 : c.bold ? 1 : 0;
+  (c.xp >= XP.damageThreshold ? 1 : 0) + (c.xp >= XP.rateThreshold ? 1 : 0) + (c.xp >= XP.threshold ? 1 : 0) + (c.xp >= XP.capitalThreshold ? 1 : 0);
 
-/** Level 3 / 4 bonuses, derived from the copy's XP (they travel with the letter). */
+/** Level 1 / 2 bonuses, derived from the copy's XP (they travel with the letter). */
 export const xpDamageMul = (c: LetterCopy): number => (c.xp >= XP.damageThreshold ? XP.damageMul : 1);
 export const xpRateMul = (c: LetterCopy): number => (c.xp >= XP.rateThreshold ? XP.rateMul : 1);
 
-/** Add XP to the copy that dealt damage, if its owner still holds it. Level 1 = BOLD, 2 = CAPITAL, 3 = +damage, 4 = +fire rate. */
+/** Add XP to the copy that dealt damage, if its owner still holds it. Level 1 = +damage, 2 = +fire rate, 3 = BOLD (+HP), 4 = CAPITAL. */
 export function creditXp(w: World, attacker: number | null, copyId: number | null, amount: number): void {
   if (attacker === null || copyId === null) return;
   const c = w.copies[copyId];
-  if (!c || c.owner !== attacker || c.xp >= XP.rateThreshold) return;
+  if (!c || c.owner !== attacker || c.xp >= XP.capitalThreshold) return;
   const before = c.xp;
   c.xp += amount;
+  if (before < XP.damageThreshold && c.xp >= XP.damageThreshold) w.events.push({ t: 'levelup', id: attacker, letter: c.letter, level: 1 });
+  if (before < XP.rateThreshold && c.xp >= XP.rateThreshold) w.events.push({ t: 'levelup', id: attacker, letter: c.letter, level: 2 });
   if (!c.bold && c.xp >= XP.threshold) {
+    const oldMax = copyMaxHp(c);
     c.bold = true;
+    const gain = copyMaxHp(c) - oldMax;
+    const p = w.players[attacker];
+    if (p.active === c.id) {
+      p.maxHp += gain;
+      p.hp += gain;
+    } else c.hp += gain;
     w.events.push({ t: 'bold', id: attacker, letter: c.letter });
   }
-  if (!c.upgraded && c.bold && c.xp >= XP.capitalThreshold) {
+  if (!c.upgraded && c.xp >= XP.capitalThreshold) {
     c.upgraded = true;
     w.events.push({ t: 'upgrade', id: attacker, letter: c.letter });
   }
-  if (before < XP.damageThreshold && c.xp >= XP.damageThreshold) w.events.push({ t: 'levelup', id: attacker, letter: c.letter, level: 3 });
-  if (before < XP.rateThreshold && c.xp >= XP.rateThreshold) w.events.push({ t: 'levelup', id: attacker, letter: c.letter, level: 4 });
 }
 
 /**

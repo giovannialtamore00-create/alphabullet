@@ -7,15 +7,15 @@ import { WORDS } from '../sim/words';
 
 /** Progress (0..1) toward the copy's next level. */
 const levelProgress = (c: LetterCopy) =>
-  c.xp >= XP.rateThreshold
+  c.xp >= XP.capitalThreshold
     ? 1
-    : c.xp >= XP.damageThreshold
-      ? (c.xp - XP.damageThreshold) / (XP.rateThreshold - XP.damageThreshold)
-      : c.upgraded
-        ? (c.xp - XP.capitalThreshold) / (XP.damageThreshold - XP.capitalThreshold)
-        : c.bold
-          ? Math.min(1, (c.xp - XP.threshold) / (XP.capitalThreshold - XP.threshold))
-          : Math.min(1, c.xp / XP.threshold);
+    : c.xp >= XP.threshold
+      ? (c.xp - XP.threshold) / (XP.capitalThreshold - XP.threshold)
+      : c.xp >= XP.rateThreshold
+        ? (c.xp - XP.rateThreshold) / (XP.threshold - XP.rateThreshold)
+        : c.xp >= XP.damageThreshold
+          ? (c.xp - XP.damageThreshold) / (XP.rateThreshold - XP.damageThreshold)
+          : c.xp / XP.damageThreshold;
 import { INK, strokeGlyph } from '../render/glyphCanvas';
 
 const fmt = (s: number) => {
@@ -186,15 +186,16 @@ export class Hud {
       return;
     }
     this.xpFill.style.width = `${levelProgress(c) * 100}%`;
-    this.xpText.textContent = c.xp >= XP.rateThreshold
-      ? `Lv4 ${c.letter} - max level (+15% damage, +20% fire rate)`
-      : c.xp >= XP.damageThreshold
-        ? `Lv3 ${c.letter} +15% damage - XP ${Math.floor(c.xp)} / ${XP.rateThreshold} to +20% fire rate`
-        : c.upgraded
-          ? `Lv2 ${c.letter} CAPITAL - XP ${Math.floor(c.xp)} / ${XP.damageThreshold} to +15% damage`
-          : c.bold
-        ? `Lv1 ${c.letter} BOLD - XP ${Math.floor(c.xp)} / ${XP.capitalThreshold} to CAPITAL`
-        : `Lv0 ${c.letter.toLowerCase()} - XP ${Math.floor(c.xp)} / ${XP.threshold} to BOLD`;
+    const xp = Math.floor(c.xp);
+    this.xpText.textContent = c.xp >= XP.capitalThreshold
+      ? `Lv4 ${c.letter} CAPITAL - max level`
+      : c.xp >= XP.threshold
+        ? `Lv3 ${c.letter} BOLD - XP ${xp} / ${XP.capitalThreshold} to CAPITAL`
+        : c.xp >= XP.rateThreshold
+          ? `Lv2 ${c.letter} +20% fire rate - XP ${xp} / ${XP.threshold} to BOLD (+25% HP)`
+          : c.xp >= XP.damageThreshold
+            ? `Lv1 ${c.letter.toLowerCase()} +15% damage - XP ${xp} / ${XP.rateThreshold} to +20% fire rate`
+            : `Lv0 ${c.letter.toLowerCase()} - XP ${xp} / ${XP.damageThreshold} to +15% damage`;
     if (!c.upgraded) this.capInfo.textContent = 'CAPITAL locked - earn XP with this letter';
     else if (c.capitalTimer > 0) this.capInfo.textContent = `CAPITAL ${c.letter}! ${Math.ceil(c.capitalTimer)}s`;
     else if (c.capitalCd > 0) this.capInfo.textContent = `CAPITAL recharging ${Math.ceil(c.capitalCd)}s`;

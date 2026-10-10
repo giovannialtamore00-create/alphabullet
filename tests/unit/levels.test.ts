@@ -28,19 +28,20 @@ describe('letter levels: BOLD (1) and CAPITAL (2)', () => {
     expect(w.events.some((e) => e.t === 'upgrade')).toBe(true);
   });
 
-  it('BOLD only makes bullets 25% bigger: same HP, same damage', () => {
+  it('BOLD makes bullets 25% bigger and +25% HP: same damage', () => {
     const w = setup();
     const p = w.players[0];
     p.fireTimer = 0;
     step(w, {});
     const before = w.bullets.find((b) => b.owner === 0)!;
     debugBoldActive(w, 0);
-    expect(p.maxHp).toBe(PLAYER_HP);
+    expect(p.maxHp).toBe(PLAYER_HP * BOLD.hpMul);
+    expect(p.hp).toBe(PLAYER_HP * BOLD.hpMul);
     w.bullets = [];
     p.fireTimer = 0;
     step(w, {});
     const after = w.bullets.find((b) => b.owner === 0)!;
-    expect(after.dmg).toBeCloseTo(before.dmg, 5);
+    expect(after.dmg).toBeCloseTo(before.dmg * XP.damageMul, 5);
     expect(after.r).toBeCloseTo(before.r * BOLD.bulletRadiusMul, 5);
   });
 
@@ -73,11 +74,11 @@ describe('CAPITAL temporary HP', () => {
     step(w, { 0: cap });
     expect(p.tempHp).toBeCloseTo(p.maxHp * CAPITAL_TEMP_HP_FRAC);
     damagePlayer(w, p, 20, p.x + 50, p.y, null, false);
-    expect(p.hp).toBe(PLAYER_HP);
-    expect(p.tempHp).toBeCloseTo(30);
-    damagePlayer(w, p, 40, p.x + 50, p.y, null, false);
+    expect(p.hp).toBe(p.maxHp);
+    expect(p.tempHp).toBeCloseTo(p.maxHp * CAPITAL_TEMP_HP_FRAC - 20);
+    damagePlayer(w, p, 50, p.x + 50, p.y, null, false);
     expect(p.tempHp).toBe(0);
-    expect(p.hp).toBeCloseTo(90);
+    expect(p.hp).toBeCloseTo(p.maxHp - 7.5);
     step(w, { 0: cap }); // on cooldown/active: no new temp HP
     const c = activeCopy(w, p)!;
     c.capitalTimer = DT / 2;
