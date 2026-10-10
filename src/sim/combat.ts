@@ -78,6 +78,10 @@ export function selectLetter(w: World, p: Player, id: number): void {
   p.maxHp = copyMaxHp(c);
 }
 
+/** Letter level 0-4 from its XP and flags. */
+export const copyLevel = (c: LetterCopy): number =>
+  c.xp >= XP.rateThreshold ? 4 : c.xp >= XP.damageThreshold ? 3 : c.upgraded ? 2 : c.bold ? 1 : 0;
+
 /** Level 3 / 4 bonuses, derived from the copy's XP (they travel with the letter). */
 export const xpDamageMul = (c: LetterCopy): number => (c.xp >= XP.damageThreshold ? XP.damageMul : 1);
 export const xpRateMul = (c: LetterCopy): number => (c.xp >= XP.rateThreshold ? XP.rateMul : 1);

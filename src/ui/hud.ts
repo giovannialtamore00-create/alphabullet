@@ -1,6 +1,6 @@
 /** In-game HUD as a DOM overlay (black ink on paper). */
 import { CAPITAL_COOLDOWN, CAPITAL_DURATION, FOG_STAGES, SPLASH, XP } from '../sim/config';
-import { activeCopy, copyMaxHp } from '../sim/combat';
+import { activeCopy, copyLevel, copyMaxHp } from '../sim/combat';
 import { getForm } from '../sim/glyphDerive';
 import type { LetterCopy, TimedFx, World } from '../sim/types';
 import { WORDS } from '../sim/words';
@@ -144,7 +144,8 @@ export class Hud {
 
   private updateLetters(w: World, id: number): void {
     const p = w.players[id];
-    const copies = p.letters.map((cid) => w.copies[cid]);
+    // Highest level on the left; ties keep pickup order (stable sort).
+    const copies = p.letters.map((cid) => w.copies[cid]).sort((a, b) => copyLevel(b) - copyLevel(a) || b.xp - a.xp);
     while (this.slots.length < copies.length) {
       const box = el('div', 'slot', this.row);
       const canvas = el('canvas', 'slot-glyph', box);
@@ -159,7 +160,8 @@ export class Hud {
       if (!c) return;
       const cap = c.capitalTimer > 0;
       const active = c.id === p.active;
-      const key = `${c.letter}${cap}${active}${c.upgraded}${c.bold}`;
+      const lvl = copyLevel(c);
+      const key = `${c.letter}${cap}${active}${c.upgraded}${c.bold}${lvl}`;
       if (key !== s.key) {
         s.key = key;
         const ctx = s.canvas.getContext('2d')!;
@@ -169,6 +171,7 @@ export class Hud {
         s.box.dataset.key = c.letter;
         s.box.classList.toggle('active', active);
         s.box.classList.toggle('upgraded', c.upgraded);
+        for (let l = 0; l <= 4; l++) s.box.classList.toggle(`lv${l}`, l === lvl);
       }
       s.xp.style.width = `${levelProgress(c) * 100}%`;
       // Each letter has its own HP (ink); the active one is live on the player.

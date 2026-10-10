@@ -78,3 +78,5 @@
 ## M28: XP levels 3/4 + speed (needs playtest)
 - Lv3 (2400 XP) +15% damage, Lv4 (4000 XP) +20% fire rate, derived from copy XP (combat.ts xpDamageMul/xpRateMul). PLAYER_SPEED 393 (+5%). Test: tests/unit/xpLevels.test.ts; 130 tests pass.
 - Open: playtest; tune thresholds in XP (config.ts).
+
+- Letter bar sorted by level (highest left); frame grows per level (lv0-4, hud.ts + style.css). XP thresholds now BOLD 600, CAPITAL 1000, Lv3 1200, Lv4 1400. Needs playtest.

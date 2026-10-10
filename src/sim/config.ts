@@ -72,11 +72,11 @@ export const DROP_DECAY = { wait: 7, flash: 3 };
 export const SHUFFLE = { time: 3 };
 
 export const XP = {
-  threshold: 400, // level 1: BOLD
-  capitalThreshold: 1200, // level 2: CAPITAL unlocked (PLACEHOLDER: total XP)
-  damageThreshold: 2400, // level 3: +15% damage (PLACEHOLDER: total XP)
+  threshold: 600, // level 1: BOLD
+  capitalThreshold: 1000, // level 2: CAPITAL unlocked (PLACEHOLDER: total XP)
+  damageThreshold: 1200, // level 3: +15% damage (PLACEHOLDER: total XP)
   damageMul: 1.15,
-  rateThreshold: 4000, // level 4: +20% fire rate (PLACEHOLDER: total XP)
+  rateThreshold: 1400, // level 4: +20% fire rate (PLACEHOLDER: total XP)
   rateMul: 1.2,
   perDamage: 1.25, // +25% (patch), applies to every XP source
   mobKill: 7.5,
