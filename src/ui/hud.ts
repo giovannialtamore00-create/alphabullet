@@ -7,9 +7,11 @@ import { WORDS } from '../sim/words';
 
 /** Progress (0..1) toward the copy's next level. */
 const levelProgress = (c: LetterCopy) =>
-  c.xp >= XP.capitalThreshold
+  c.xp >= XP.rangeThreshold
     ? 1
-    : c.xp >= XP.threshold
+    : c.xp >= XP.capitalThreshold
+      ? (c.xp - XP.capitalThreshold) / (XP.rangeThreshold - XP.capitalThreshold)
+      : c.xp >= XP.threshold
       ? (c.xp - XP.threshold) / (XP.capitalThreshold - XP.threshold)
       : c.xp >= XP.rateThreshold
         ? (c.xp - XP.rateThreshold) / (XP.threshold - XP.rateThreshold)
@@ -171,7 +173,7 @@ export class Hud {
         s.box.dataset.key = c.letter;
         s.box.classList.toggle('active', active);
         s.box.classList.toggle('upgraded', c.upgraded);
-        for (let l = 0; l <= 4; l++) s.box.classList.toggle(`lv${l}`, l === lvl);
+        for (let l = 0; l <= 5; l++) s.box.classList.toggle(`lv${l}`, l === lvl);
       }
       s.xp.style.width = `${levelProgress(c) * 100}%`;
       // Each letter has its own HP (ink); the active one is live on the player.
@@ -187,8 +189,10 @@ export class Hud {
     }
     this.xpFill.style.width = `${levelProgress(c) * 100}%`;
     const xp = Math.floor(c.xp);
-    this.xpText.textContent = c.xp >= XP.capitalThreshold
-      ? `Lv4 ${c.letter} CAPITAL - max level`
+    this.xpText.textContent = c.xp >= XP.rangeThreshold
+      ? `Lv5 ${c.letter} CAPITAL +20% range - max level`
+      : c.xp >= XP.capitalThreshold
+      ? `Lv4 ${c.letter} CAPITAL - XP ${xp} / ${XP.rangeThreshold} to +20% range`
       : c.xp >= XP.threshold
         ? `Lv3 ${c.letter} BOLD - XP ${xp} / ${XP.capitalThreshold} to CAPITAL`
         : c.xp >= XP.rateThreshold

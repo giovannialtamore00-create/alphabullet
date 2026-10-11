@@ -9,6 +9,7 @@ import {
   CHUNKY,
   DISARM,
   ERASE,
+  BOMB,
   DT,
   JET,
   MAP_SIZE,
@@ -25,9 +26,9 @@ import {
   XRAY,
   ZAP,
 } from './config';
-import { activeCopy, activeForm, addSlow, bodyMul, creditXp, damageMob, damagePlayer, glyphPose, playerRadius, posePoint, selectLetter, speedMul, xpDamageMul, xpRateMul } from './combat';
+import { activeCopy, activeForm, addSlow, bodyMul, creditXp, damageMob, damagePlayer, glyphPose, playerRadius, posePoint, selectLetter, speedMul, xpDamageMul, xpRangeMul, xpRateMul } from './combat';
 import { createFog, updateFog } from './fog';
-import { refreshPassives, useWord } from './words';
+import { bombBlast, refreshPassives, useWord } from './words';
 
 import { createCopies, drawFromPool, dropCopy, dropLetters, findSpot, giveCopy, spawnWave, updateDropDecay, updatePickups, updateShuffle, updateWave } from './letters';
 import { makeMob, updateMobs } from './mobs';
@@ -106,6 +107,7 @@ export function createWorld(seed: number, setups: PlayerSetup[], opts: { mobs?: 
       jetVx: 0,
       jetVy: 0,
       xrayBack: null,
+      bombT: 0,
     };
     w.players.push(p);
   });
@@ -175,6 +177,11 @@ function applyInput(w: World, p: Player, inp: PlayerInput): void {
     p.xrayBack = null;
   }
   refreshPassives(w, p);
+  // BOMB (continuous): blast again every BOMB.every seconds while it stays on.
+  if (p.fx.bomb > 0 && p.alive && (p.bombT -= DT) <= 0) {
+    p.bombT = BOMB.every;
+    bombBlast(w, p);
+  }
   p.disarmT = Math.max(0, p.disarmT - DT);
   p.splashT = Math.max(0, p.splashT - DT);
   p.slowT = Math.max(0, p.slowT - DT);
@@ -185,7 +192,7 @@ function applyInput(w: World, p: Player, inp: PlayerInput): void {
     p.faceY = inp.my / len;
   }
   const before = activeCopy(w, p)?.letter ?? null;
-  if (inp.word && useWord(w, p, inp.word) && inp.word === 'XRAY') {
+  if (inp.word && useWord(w, p, inp.word) && inp.word === 'XRAY' && p.fx.xray > 0) {
     // XRAY: fire from the X letter until the lasers run out, then return to the letter held before.
     p.xrayBack = inp.wordBack ?? before;
     switchLetter(w, p, 'X');
@@ -253,7 +260,7 @@ function fire(w: World): void {
             r: b.radius * boldR * (p.fx.chunky > 0 ? CHUNKY.bulletMul : 1) * (laser ? XRAY.radiusMul : 1),
             // XRAY fires XRAY.rate times a second: scale so the ray deals XRAY.dmgMul x the letter's normal damage per second.
             dmg: ((b.dmg * xpDamageMul(w.copies[p.active]) * e.dmgMul) / e.pellets) * (laser ? (XRAY.dmgMul * b.rate) / XRAY.rate : 1),
-            life: laser ? (MAP_SIZE * 1.5) / sp : e.range / b.speed,
+            life: laser ? (MAP_SIZE * 1.5) / sp : (e.range * xpRangeMul(w.copies[p.active])) / b.speed,
             capital: form.capital,
             pierce: p.fx.pierce > 0 || laser,
             laser,

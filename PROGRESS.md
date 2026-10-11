@@ -80,3 +80,10 @@
 - Open: playtest; tune thresholds in XP (config.ts).
 
 - Letter bar sorted by level (highest left); frame grows per level (lv0-4, hud.ts + style.css). XP thresholds now BOLD 600, CAPITAL 1000, Lv3 1200, Lv4 1400. Needs playtest.
+
+## M31: void/bots, mob edge spawns, Lv5, continuous BOMB (needs playtest)
+- XP order now: 300 dmg, 500 rate, 800 BOLD (+25% HP), 1000 CAPITAL, 1200 Lv5 +20% range. Word immunity 1 s.
+- VOID radius 325 (-15% twice). Bots flee voids; caught inner half = no escape, outer half 40-60% roll (bots.ts).
+- Mob spawns: half are turned away from map centre (MOB_SPAWN_EDGE_BIAS), rate unchanged.
+- BOMB is continuous (blast on typing, then every 20 s, counts as a passive). Typing a running power toggles it off. EXILE: closer enemy lands farther, up to 50% into fog.
+- Known: tests/unit/net.test.ts "25% fast messages lost" fails (seed-fragile, also fails on other seeds without these changes; mirror 123 vs host 121 events). 135/136 pass.

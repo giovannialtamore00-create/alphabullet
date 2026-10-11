@@ -31,7 +31,8 @@ html, body { margin: 0; height: 100%; background: var(--paper); overflow: hidden
 .slot.lv2 { width: 60px; height: 66px; border-width: 3px; }
 .slot.lv3 { width: 64px; height: 70px; border: 4px double var(--ink); }
 .slot.lv4 { width: 68px; height: 74px; border: 6px double var(--ink); box-shadow: 0 0 10px #e0a040; }
-.slot.lv3.active, .slot.lv4.active { box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+.slot.lv5 { width: 70px; height: 76px; border: 6px double var(--ink); box-shadow: 0 0 12px #e0a040; }
+.slot.lv3.active, .slot.lv4.active, .slot.lv5.active { box-shadow: 0 3px 0 rgba(0,0,0,.25); }
 .slot-glyph { width: 46px; height: 46px; }
 .slot-xp { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--accent); }
 .slot-hp { position: absolute; left: 0; bottom: 5px; height: 4px; background: var(--ink); opacity: .75; }

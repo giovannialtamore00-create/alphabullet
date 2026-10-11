@@ -78,23 +78,25 @@ export function selectLetter(w: World, p: Player, id: number): void {
   p.maxHp = copyMaxHp(c);
 }
 
-/** Letter level 0-4 from its XP and flags. */
+/** Letter level 0-5 from its XP and flags. */
 export const copyLevel = (c: LetterCopy): number =>
-  (c.xp >= XP.damageThreshold ? 1 : 0) + (c.xp >= XP.rateThreshold ? 1 : 0) + (c.xp >= XP.threshold ? 1 : 0) + (c.xp >= XP.capitalThreshold ? 1 : 0);
+  (c.xp >= XP.damageThreshold ? 1 : 0) + (c.xp >= XP.rateThreshold ? 1 : 0) + (c.xp >= XP.threshold ? 1 : 0) + (c.xp >= XP.capitalThreshold ? 1 : 0) + (c.xp >= XP.rangeThreshold ? 1 : 0);
 
 /** Level 1 / 2 bonuses, derived from the copy's XP (they travel with the letter). */
 export const xpDamageMul = (c: LetterCopy): number => (c.xp >= XP.damageThreshold ? XP.damageMul : 1);
 export const xpRateMul = (c: LetterCopy): number => (c.xp >= XP.rateThreshold ? XP.rateMul : 1);
+export const xpRangeMul = (c: LetterCopy): number => (c.xp >= XP.rangeThreshold ? XP.rangeMul : 1);
 
-/** Add XP to the copy that dealt damage, if its owner still holds it. Level 1 = +damage, 2 = +fire rate, 3 = BOLD (+HP), 4 = CAPITAL. */
+/** Add XP to the copy that dealt damage, if its owner still holds it. Level 1 = +damage, 2 = +fire rate, 3 = BOLD (+HP), 4 = CAPITAL, 5 = +range. */
 export function creditXp(w: World, attacker: number | null, copyId: number | null, amount: number): void {
   if (attacker === null || copyId === null) return;
   const c = w.copies[copyId];
-  if (!c || c.owner !== attacker || c.xp >= XP.capitalThreshold) return;
+  if (!c || c.owner !== attacker || c.xp >= XP.rangeThreshold) return;
   const before = c.xp;
   c.xp += amount;
   if (before < XP.damageThreshold && c.xp >= XP.damageThreshold) w.events.push({ t: 'levelup', id: attacker, letter: c.letter, level: 1 });
   if (before < XP.rateThreshold && c.xp >= XP.rateThreshold) w.events.push({ t: 'levelup', id: attacker, letter: c.letter, level: 2 });
+  if (before < XP.rangeThreshold && c.xp >= XP.rangeThreshold) w.events.push({ t: 'levelup', id: attacker, letter: c.letter, level: 5 });
   if (!c.bold && c.xp >= XP.threshold) {
     const oldMax = copyMaxHp(c);
     c.bold = true;

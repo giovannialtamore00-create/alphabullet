@@ -7,6 +7,7 @@ import {
   MOB_CONTACT_COOLDOWN,
   MOB_DESPAWN_DIST,
   MOB_SPAWN_DIST,
+  MOB_SPAWN_EDGE_BIAS,
   MOB_TIERS,
   LETTER_AREA_RADIUS,
   LETTER_AREA_SPAWN_MUL,
@@ -71,8 +72,10 @@ function spawnMobs(w: World, dt: number): void {
     while (p.mobAcc >= 1) {
       p.mobAcc -= 1;
       if (w.mobs.length >= cap) continue;
-      const ang = w.rng.next() * Math.PI * 2;
+      let ang = w.rng.next() * Math.PI * 2;
       const d = w.rng.range(MOB_SPAWN_DIST[0], MOB_SPAWN_DIST[1]);
+      // Half of the spawns are turned to the side facing away from the map centre, so mobs come in from outside.
+      if (w.rng.next() < MOB_SPAWN_EDGE_BIAS && Math.cos(ang) * (p.x - MAP_SIZE / 2) + Math.sin(ang) * (p.y - MAP_SIZE / 2) < 0) ang += Math.PI;
       const x = p.x + Math.cos(ang) * d;
       const y = p.y + Math.sin(ang) * d;
       // Off-map spawns are allowed (mobs walk in), so players at the edge are still surrounded.

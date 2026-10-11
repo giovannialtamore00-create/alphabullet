@@ -125,3 +125,51 @@ describe('word powers', () => {
     expect(w.events.some((e) => e.t === 'word')).toBe(true);
   });
 });
+
+describe('BOMB continuous, toggle-off, EXILE ordering', () => {
+  it('BOMB blasts on typing, again every 20 s, and stops when typed again', () => {
+    const w = setup('BOMB');
+    const p = w.players[0];
+    const m = makeMob(w, '#', p.x + 100, p.y);
+    m.hp = 100000;
+    m.speed = 0;
+    w.mobs.push(m);
+    expect(useWord(w, p, 'BOMB')).toBe(true);
+    expect(m.hp).toBeCloseTo(100000 - BOMB.dmg);
+    for (let i = 0; i < 30 * 19; i++) step(w, { 0: NO_INPUT });
+    expect(m.hp).toBeCloseTo(100000 - BOMB.dmg);
+    for (let i = 0; i < 30 * 2; i++) step(w, { 0: NO_INPUT });
+    expect(m.hp).toBeLessThan(100000 - BOMB.dmg - BOMB.dmg / 2);
+    expect(useWord(w, p, 'BOMB')).toBe(true); // off
+    const hp = m.hp;
+    for (let i = 0; i < 30 * 25; i++) step(w, { 0: NO_INPUT });
+    expect(m.hp).toBe(hp);
+  });
+
+  it('typing a running ERASE switches it off', () => {
+    const w = setup('ERASE');
+    const p = w.players[0];
+    useWord(w, p, 'ERASE');
+    expect(p.fx.erase).toBeGreaterThan(0);
+    expect(useWord(w, p, 'ERASE')).toBe(true);
+    expect(p.fx.erase).toBe(0);
+  });
+
+  it('EXILE sends the closer enemy farther away', () => {
+    const w = setup('EXILE');
+    const p = w.players[0];
+    p.x = 4000;
+    p.y = 4000;
+    const [, near, far] = w.players;
+    near.x = 4000 + 100;
+    near.y = 4000;
+    far.x = 4000 + 700;
+    far.y = 4000;
+    expect(useWord(w, p, 'EXILE')).toBe(true);
+    const dn = Math.hypot(near.x - p.x, near.y - p.y);
+    const df = Math.hypot(far.x - p.x, far.y - p.y);
+    expect(dn).toBeGreaterThan(df);
+    expect(df).toBeGreaterThan(1000);
+    for (const q of [near, far]) expect(Math.hypot(q.x - w.fog.x, q.y - w.fog.y)).toBeLessThanOrEqual(w.fog.r * 1.5 + 25);
+  });
+});

@@ -3,7 +3,7 @@
  * so the sim cannot tell bots and humans apart.
  */
 import { activeCopy, activeForm } from './combat';
-import { SPLASH } from './config';
+import { SPLASH, VOID } from './config';
 import { getForm } from './glyphDerive';
 import { ownsLetter } from './letters';
 import { Rng } from './rng';
@@ -21,6 +21,7 @@ export interface BotBrain {
   mx: number; // last quantized output, for hysteresis
   my: number;
   target: number; // sticky letter-pickup target (copy id), -1 = none
+  voidRoll: Map<number, boolean>; // void id -> this bot's one-time escape roll once caught
 }
 
 const KITE_RANGE = 330;
@@ -35,7 +36,7 @@ export function botName(rng: Rng): string {
 
 export function createBrain(seed: number): BotBrain {
   const rng = new Rng(seed);
-  return { rng, wanderX: 0, wanderY: 0, wanderT: 0, switchT: 2 + rng.next() * 4, strafe: rng.next() < 0.5 ? 1 : -1, sx: 0, sy: 0, mx: 0, my: 0, target: -1 };
+  return { rng, wanderX: 0, wanderY: 0, wanderT: 0, switchT: 2 + rng.next() * 4, strafe: rng.next() < 0.5 ? 1 : -1, sx: 0, sy: 0, mx: 0, my: 0, target: -1, voidRoll: new Map() };
 }
 
 function safeCircle(w: World) {
@@ -97,6 +98,27 @@ export function botInput(w: World, id: number, brain: BotBrain): PlayerInput {
     vx += ((safe.x - p.x) / dSafe) * k;
     vy += ((safe.y - p.y) / dSafe) * k;
   }
+
+  // 1b) Run from VOID holes. Once one is pulling and the bot is inside, it gets one escape roll:
+  // inner half = 0%, outer half = 40% at the half-way line up to 60% at the rim. Failing the roll means it does not flee.
+  for (const h of w.voids) {
+    const dx = p.x - h.x;
+    const dy = p.y - h.y;
+    const d = Math.hypot(dx, dy) || 0.01;
+    if (d > VOID.radius + 100) continue;
+    if (h.t >= VOID.arm && d <= VOID.radius) {
+      let ok = brain.voidRoll.get(h.id);
+      if (ok === undefined) {
+        const half = VOID.radius / 2;
+        ok = d > half && brain.rng.next() < 0.4 + 0.2 * Math.min(1, (d - half) / half);
+        brain.voidRoll.set(h.id, ok);
+      }
+      if (!ok) continue;
+    }
+    vx += (dx / d) * 12;
+    vy += (dy / d) * 12;
+  }
+  if (brain.voidRoll.size > 8) for (const id of brain.voidRoll.keys()) if (!w.voids.some((h) => h.id === id)) brain.voidRoll.delete(id);
 
   // 2) Kite mobs.
   let mobsNear = 0;

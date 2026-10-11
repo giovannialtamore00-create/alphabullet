@@ -77,6 +77,8 @@ export const XP = {
   rateThreshold: 500, // level 2: +20% fire rate
   threshold: 800, // level 3: BOLD (+25% HP)
   capitalThreshold: 1000, // level 4: CAPITAL unlocked
+  rangeThreshold: 1200, // level 5: +20% bullet range
+  rangeMul: 1.2,
   rateMul: 1.2,
   perDamage: 1.25, // +25% (patch), applies to every XP source
   mobKill: 7.5,
@@ -115,6 +117,8 @@ export const MOB_CAP_PER_PLAYER = 60;
 export const MOB_CAP_PER_SCREEN = 60;
 export const SCREEN_AREA = 1600 * 900;
 export const MOB_SPAWN_DIST: [number, number] = [1050, 1300];
+/** Share of spawns turned to face away from the map centre (rate is unchanged, only the direction shifts). */
+export const MOB_SPAWN_EDGE_BIAS = 0.5;
 export const MOB_DESPAWN_DIST = 2600;
 /** Spawns/sec per alive player at time t (seconds): +15% per minute, compounding (playtest 4). */
 export const MOB_SPAWN_GROWTH_PER_MIN = 1.18; // was 1.15, escalation +20% (patch)
@@ -167,7 +171,7 @@ export const WORD_IMMUNITY = 1; // seconds of invulnerability when a word power 
 export const MAX_PASSIVES = 3;
 export const WORD_TYPE_WINDOW = 1; // max seconds between typed letters of a word
 export const PIERCE = { duration: 6, cooldown: 30 };
-export const BOMB = { radius: 300, dmg: 60, cooldown: 25 };
+export const BOMB = { radius: 300, dmg: 60, cooldown: 25, every: 20 }; // continuous: stays on, blasts every `every` s
 export const DASH = { dist: 350, cooldown: 8 };
 /** PUSH: everything within `radius` is shoved `dist` px straight away from the caster. PLACEHOLDER numbers. */
 export const PUSH = { radius: 400, dist: 350, cooldown: 15 };
@@ -176,7 +180,7 @@ export const BOUNCE = { duration: 8, cooldown: 30, bounces: 2, minLife: 0.35 }; 
 export const FREEZE = { duration: 8, cooldown: 30, perHit: 0.05, max: 0.2, slowTime: 1.5 };
 export const ERASE = { duration: 12, cooldown: 45, radius: 200 };
 /** Black hole: arms for `arm` s, then pulls for `pull` s; whatever is still inside `radius` is swallowed. */
-export const VOID = { cooldown: 50, arm: 2, pull: 4, radius: 450, pullEdge: 120, pullCore: 800 };
+export const VOID = { cooldown: 50, arm: 2, pull: 4, radius: 325, pullEdge: 120, pullCore: 800 };
 export const SPLASH = { duration: 5, cooldown: 40, cover: 0.6, botSight: 0.4 };
 export const DISARM = { duration: 8, cooldown: 35, lock: 0.3 };
 export const SPEED = { duration: 12, cooldown: 30, mul: 1.35 };
@@ -188,7 +192,7 @@ export const MAGNET = { duration: 12, cooldown: 30, radius: 1000, speed: 500 };
 /** JETPACK: fast spin, faster fire, and recoil that pushes the player opposite the average shot direction. PLACEHOLDER numbers. */
 export const JET = { duration: 5, cooldown: 40, revPerSec: 3, fireMul: 2.5, kick: 260, drag: 3 };
 /** EXILE: other players inside this box around the caster (the camera view at zoom 1) are teleported at least `minDist` away. */
-export const EXILE = { cooldown: 45, halfW: 800, halfH: 450, minDist: 2000, fogReach: 0.2 }; // may land up to fogReach * safe radius into the fog
+export const EXILE = { cooldown: 45, halfW: 800, halfH: 450, minDist: 2000, fogReach: 0.5 }; // may land up to fogReach * safe radius into the fog
 /** XRAY: the caster's X letter fires piercing, unlimited-range lasers. */
 export const XRAY = { duration: 5, cooldown: 45, speedMul: 3, radiusMul: 0.6, dmgMul: 2, rate: 30 }; // rate: shots/s, high enough that bullets overlap into one ray
 /** CHUNKY: bigger body (and hitbox) and bigger bullets. Duration and cooldown PLACEHOLDER. */

@@ -22,7 +22,11 @@ describe('passive word powers', () => {
     idle(w, 30 * 60);
     expect(p.fx.pierce).toBeGreaterThan(0);
     expect(p.wordCd.PIERCE ?? 0).toBe(0);
-    expect(useWord(w, p, 'PIERCE')).toBe(false); // already on
+    expect(useWord(w, p, 'PIERCE')).toBe(true); // typing it again switches it off
+    expect(p.passives).toEqual([]);
+    expect(p.fx.pierce).toBe(0);
+    idle(w, 5);
+    expect(p.fx.pierce).toBe(0);
   });
 
   it('a 4th passive removes the oldest', () => {
@@ -47,10 +51,10 @@ describe('passive word powers', () => {
   });
 
   it('instant words are not passive', () => {
-    const w = setup('BOMB');
+    const w = setup('DASH');
     const p = w.players[0];
-    useWord(w, p, 'BOMB');
+    useWord(w, p, 'DASH');
     expect(p.passives).toEqual([]);
-    expect(p.wordCd.BOMB).toBeGreaterThan(0);
+    expect(p.wordCd.DASH).toBeGreaterThan(0);
   });
 });

@@ -11,7 +11,7 @@ export interface PlayerInput {
   wordBack?: string | null; // letter held before typing the word; switched back to after it
 }
 /** Word powers that last a while; their timers live in Player.fx (order = network order). */
-export const TIMED_FX = ['pierce', 'bounce', 'freeze', 'erase', 'disarm', 'speed', 'zap', 'spin', 'flip', 'magnet', 'jet', 'xray', 'chunky'] as const;
+export const TIMED_FX = ['pierce', 'bounce', 'freeze', 'erase', 'disarm', 'speed', 'zap', 'spin', 'flip', 'magnet', 'jet', 'xray', 'chunky', 'bomb'] as const;
 export type TimedFx = (typeof TIMED_FX)[number];
 export const noFx = (): Record<TimedFx, number> => Object.fromEntries(TIMED_FX.map((k) => [k, 0])) as Record<TimedFx, number>;
 
@@ -58,6 +58,7 @@ export interface Player {
   jetVx: number; // JETPACK recoil velocity (px/s), host only
   jetVy: number;
   xrayBack: string | null; // letter to return to when XRAY ends, host only
+  bombT: number; // seconds until the next BOMB blast while it is on, host only
 }
 
 export type CopyState = 'pool' | 'ground' | 'owned';
@@ -159,7 +160,7 @@ export type SimEvent =
   | { t: 'pickup'; id: number; letter: string; x: number; y: number }
   | { t: 'switch'; id: number; letter: string }
   | { t: 'upgrade'; id: number; letter: string }
-  | { t: 'levelup'; id: number; letter: string; level: 1 | 2 }
+  | { t: 'levelup'; id: number; letter: string; level: 1 | 2 | 5 }
   | { t: 'bold'; id: number; letter: string }
   | { t: 'capital'; id: number; letter: string; on: boolean }
   | { t: 'shieldBlock'; id: number; x: number; y: number; amount: number; angle: number }
